@@ -1,8 +1,14 @@
+import io
+import os
+import sys
 import threading
+from ipymarkup import show_span_ascii_markup
+
 import customtkinter
 from tkinter import filedialog
 
 import torch
+from transformers import AutoModelForTokenClassification, AutoTokenizer, pipeline
 
 from .base_window import BaseWindow
 
@@ -100,16 +106,42 @@ class AddTextWindow(BaseWindow):
         self.loading_frame.pack_forget()
 
     def load_model(self):
-        """Загрузка модели"""
+        """Загрузка модели с кэшированием на диск"""
+        # model_name = "ai-forever/sbert_large_nlu_ru" # TODO: Она не обучена и поэтому извлекает всё подряд, нам это подходит?
+        # model_name = "DeepPavlov/rubert-base-cased" # TODO: Тоже самое, не обучена
+        model_name = "Davlan/bert-base-multilingual-cased-ner-hrl" # TODO: Обучена, но мало сущностей
+        cache_dir = ".cache/ner_model"  # Папка для кэша
+
         try:
-            from transformers import pipeline
+            # Создаем папку для кэша
+            os.makedirs(cache_dir, exist_ok=True)
+
+            # Проверяем, есть ли уже сохраненная модель
+            if os.path.exists(os.path.join(cache_dir, "config.json")):
+                print("🔄 Загрузка модели из локального кэша...")
+                self.show_loading("Загрузка модели из кэша...")
+                # Загружаем модель и токенизатор из кэша
+                model = AutoModelForTokenClassification.from_pretrained(cache_dir)
+                tokenizer = AutoTokenizer.from_pretrained(cache_dir)
+            else:
+                print("🌐 Скачивание модели из интернета...")
+                self.show_loading("Скачивание модели...")
+                # Загружаем модель и токенизатор и сохраняем в кэш
+                model = AutoModelForTokenClassification.from_pretrained(model_name)
+                tokenizer = AutoTokenizer.from_pretrained(model_name)
+                model.save_pretrained(cache_dir)
+                tokenizer.save_pretrained(cache_dir)
+
+            # Универсальный способ загрузки (автоматически использует кэш)
             self.ner_pipeline = pipeline(
                 "ner",
-                model="sberbank-ai/ruBert-large",
-                device=0 if torch.cuda.is_available() else -1,
-                aggregation_strategy="simple"
+                model=model,
+                aggregation_strategy="simple",
+                tokenizer=tokenizer,
+                device=0 if torch.cuda.is_available() else -1
             )
-            print("Модель загружена!")
+
+            print(f"✅ Модель Загружена! Путь: {cache_dir}")
             self.hide_loading()
         except Exception as e:
             print(f"Ошибка загрузки модели: {e}")
@@ -145,185 +177,55 @@ class AddTextWindow(BaseWindow):
                 self.show_error("Модель ещё загружается...")
                 return
 
-            # Разбиваем текст на предложения для прогресса
-            sentences = [s.strip() for s in text.split('.') if s.strip()]
-            total = len(sentences)
-
             self.show_loading("Обработка текста...")
-            print("Обработка текста...")
-            results = self.ner_pipeline(sentences)
-            print("Обработка завершена")
+
+            # Передаём весь текст целиком (пайплайн сам разобьёт его на подходящие части)
+            entities = self.ner_pipeline(text)
+
             self.hide_loading()
-            self.render_results_display()
 
-            # Показываем результаты
-            self.display_results(results)
+            # Если ещё не создано окно результатов - создаём
+            if not hasattr(self, 'results_frame'):
+                self.render_results_display()
+
+            # Показываем красиво оформленные результаты
+            self.display_results(entities, text)
 
         except Exception as e:
+            self.hide_loading()
             self.show_error(f"Ошибка: {str(e)}")
+        finally:
+            self.enable_ui()
 
-    # def display_results(self, entities):
-    #     self.results_output.configure(state="normal")
-    #     self.results_output.delete("1.0", "end")
-    #
-    #     self.results_output.insert("end", json.dumps(str(entities)))
-    #
-    #     self.results_output.configure(state="disabled")
-
-    # def display_results(self, entities):
-    #     self.results_output.configure(state="normal")
-    #     self.results_output.delete("1.0", "end")
-    #
-    #     try:
-    #         if not entities:
-    #             self.results_output.insert("end", "Не найдено именованных сущностей")
-    #             return
-    #
-    #         text = "Результаты распознавания сущностей:\n\n"
-    #
-    #         for i, sentence_entities in enumerate(entities, 1):
-    #             text += f"=== Предложение {i} ===\n"
-    #
-    #             if not sentence_entities:
-    #                 text += "  Не найдено сущностей\n\n"
-    #                 continue
-    #
-    #             for entity in sentence_entities:
-    #                 word = entity.get('word', '')
-    #                 entity_type = entity.get('entity_group', 'N/A')
-    #                 confidence = entity.get('score', 0)
-    #                 start = entity.get('start', 0)
-    #                 end = entity.get('end', 0)
-    #
-    #                 text += (
-    #                     f"• Текст: {word}\n"
-    #                     f"  Тип: {entity_type}\n"
-    #                     f"  Уверенность: {confidence:.3f}\n"
-    #                     f"  Позиция: {start}-{end}\n\n"
-    #                 )
-    #
-    #             text += "\n"
-    #
-    #         self.results_output.insert("end", text)
-    #
-    #     except Exception as e:
-    #         # Если что-то пошло не так, выводим оригинальные данные с форматированием
-    #         self.results_output.insert(
-    #             "end",
-    #             json.dumps(entities, indent=2, ensure_ascii=False)
-    #         )
-    #         print(f"Ошибка форматирования результатов: {e}")
-    #
-    #     self.results_output.configure(state="disabled")
-
-    def display_results(self, entities):
-        self.results_output.configure(state="normal")
-        self.results_output.delete("1.0", "end")
-
-        try:
-            if not entities or not any(entities):
-                self.results_output.insert("end", "Не найдено именованных сущностей")
-                return
-
-            # Цвета для разных типов сущностей (только foreground)
-            entity_colors = {
-                "LABEL_0": "#FF6B6B",  # Красный
-                "LABEL_1": "#4ECDC4",  # Голубой
-                "LABEL_2": "#FFD166",  # Желтый
-                "default": "#6B5B95"  # Фиолетовый
-            }
-
-            # Собираем текст с метками сущностей
-            full_text = ""
-            entity_positions = []  # Будем хранить позиции сущностей
-
-            for i, sentence_entities in enumerate(entities):
-                if not sentence_entities:
-                    continue
-
-                # Сортируем сущности по позиции начала
-                sorted_entities = sorted(sentence_entities, key=lambda x: x['start'])
-
-                sentence_text = ""
-                last_end = 0
-
-                for entity in sorted_entities:
-                    # Текст до сущности
-                    before_entity = sentence_entities[0]['word'][last_end:entity['start']]
-                    sentence_text += before_entity
-
-                    # Добавляем сущность с меткой
-                    entity_text = entity['word']
-                    entity_type = entity['entity_group']
-                    score = entity['score']
-
-                    # Сохраняем позиции для выделения
-                    start_pos = len(full_text + sentence_text)
-                    end_pos = start_pos + len(entity_text)
-
-                    entity_positions.append({
-                        'start': start_pos,
-                        'end': end_pos,
-                        'type': entity_type,
-                        'score': score,
-                        'text': entity_text
-                    })
-
-                    sentence_text += entity_text
-                    last_end = entity['end']
-
-                # Добавляем оставшийся текст
-                sentence_text += sentence_entities[0]['word'][last_end:]
-                full_text += f"Предложение {i + 1}:\n{sentence_text}\n\n"
-
-            # Вставляем текст
-            self.results_output.insert("end", full_text)
-
-            # Применяем выделение
-            self.highlight_entities(entity_positions, entity_colors)
-
-        except Exception as e:
-            self.results_output.insert("end", f"Ошибка: {str(e)}")
-
-        self.results_output.configure(state="disabled")
-
-    def highlight_entities(self, entities, colors):
-        """Применяет цветовое выделение к сущностям"""
+    def display_results(self, entities, text):
+        # Вывод сущностей в консоль (для отладки)
         for entity in entities:
-            entity_type = entity['type']
-            color = colors.get(entity_type, colors["default"])
+            print(
+                f"Сущность: {entity['word']:20} → Тип: {entity['entity_group']:15} (Точность: {entity['score']:.4f})")
 
-            # Создаем тег для этого типа
-            tag_name = f"tag_{entity_type}_{entity['start']}"
-            self.results_output.tag_config(tag_name, foreground=color)
+        # Подготовка spans для ipymarkup
+        spans = [(ent['start'], ent['end'], ent['entity_group']) for ent in entities]
 
-            # Рассчитываем позиции в текстовом поле
-            start_pos = f"1.0+{entity['start']}c"
-            end_pos = f"1.0+{entity['end']}c"
+        # Перехватываем вывод show_span_ascii_markup
+        output = io.StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = output  # Перенаправляем stdout
 
-            # Применяем тег
-            self.results_output.tag_add(tag_name, start_pos, end_pos)
+        # Генерируем ASCII-разметку
+        show_span_ascii_markup(text, spans)
 
-            # Добавляем всплывающую подсказку
-            self.results_output.tag_bind(
-                tag_name,
-                "<Enter>",
-                lambda e, t=entity_type, s=entity['score']: self.show_tooltip(f"Тип: {t}\nУверенность: {s:.2f}")
-            )
-            self.results_output.tag_bind(tag_name, "<Leave>", lambda e: self.hide_tooltip())
+        sys.stdout = old_stdout  # Возвращаем stdout
+        marked_text = output.getvalue()
 
-    def show_tooltip(self, text):
-        """Показывает всплывающую подсказку"""
-        self.tooltip = customtkinter.CTkToplevel(self)
-        self.tooltip.wm_overrideredirect(True)
-        self.tooltip.wm_geometry("+%d+%d" % (self.winfo_pointerx() + 10, self.winfo_pointery() + 10))
-        label = customtkinter.CTkLabel(self.tooltip, text=text)
-        label.pack()
+        # Проверяем, что marked_text не пустой
+        print()
+        print("DEBUG - Marked Text:", repr(marked_text))  # Для отладки
 
-    def hide_tooltip(self):
-        """Скрывает всплывающую подсказку"""
-        if hasattr(self, 'tooltip'):
-            self.tooltip.destroy()
+        # Вставляем в CTkTextbox (предварительно разблокировав)
+        self.results_output.configure(state="normal")  # Разблокируем
+        self.results_output.delete("1.0", "end")  # Очищаем (если нужно)
+        self.results_output.insert("end", marked_text)  # Вставляем
+        self.results_output.configure(state="disabled")  # Блокируем
 
     def disable_ui(self):
         """Разблокирует элементы UI после обработки"""
