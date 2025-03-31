@@ -1,10 +1,8 @@
-import io
-import sys
 import threading
-from ipymarkup import show_span_ascii_markup
 
 import customtkinter
 
+from ner import prepare_entities
 from .base_window import BaseWindow
 from .error_dialog import ErrorDialog
 from .utils import setup_keyboard_shortcuts
@@ -32,6 +30,7 @@ class AddTextWindow(BaseWindow):
         self.render_text_input_and_process_btn()
         self.render_loading_indicator()
         self.render_go_back_button()
+        self.render_results_display()
 
         # Затем загружаем модель в фоне
         threading.Thread(target=self.load_model, daemon=True).start()
@@ -91,11 +90,10 @@ class AddTextWindow(BaseWindow):
 
         self.hide_loading()
 
-    # TODO: Тоже вынести
     def render_results_display(self):
         # Рамка для вывода результатов NER
         self.results_frame = customtkinter.CTkFrame(self)
-        self.results_frame.pack(pady=20, padx=20, fill="both", expand=True)
+        self.results_frame.pack_forget()
 
         # Заголовок
         results_label = customtkinter.CTkLabel(self.results_frame, text="Результаты разметки:", font=("Arial", 14))
@@ -111,7 +109,6 @@ class AddTextWindow(BaseWindow):
         )
         self.results_output.pack(pady=10, padx=10, fill="both", expand=True)
 
-    # TODO: Тоже вынести
     def process_text(self):
         try:
             text = self.text_input.get("1.0", "end-1c").strip()
@@ -129,7 +126,7 @@ class AddTextWindow(BaseWindow):
             entities = self.ner_model.predict(text)
 
             self.hide_loading()
-            self.render_results_display()
+            # self.render_results_display()
             self.display_results(entities, text)
 
         except Exception as e:
@@ -139,30 +136,10 @@ class AddTextWindow(BaseWindow):
             self.enable_ui()
 
     def display_results(self, entities, text):
-        # Вывод сущностей в консоль (для отладки)
-        for entity in entities:
-            print(
-                f"Сущность: {entity['word']:20} → Тип: {entity['entity_group']:15} (Точность: {entity['score']:.4f})")
-
-        # Подготовка spans для ipymarkup
-        spans = [(ent['start'], ent['end'], ent['entity_group']) for ent in entities]
-
-        # Перехватываем вывод show_span_ascii_markup
-        output = io.StringIO()
-        old_stdout = sys.stdout
-        sys.stdout = output  # Перенаправляем stdout
-
-        # Генерируем ASCII-разметку
-        show_span_ascii_markup(text, spans)
-
-        sys.stdout = old_stdout  # Возвращаем stdout
-        marked_text = output.getvalue()
-
-        # Проверяем, что marked_text не пустой
-        print()
-        print("DEBUG - Marked Text:", repr(marked_text))  # Для отладки
+        marked_text = prepare_entities(entities, text)
 
         # Вставляем в CTkTextbox (предварительно разблокировав)
+        self.results_frame.pack(pady=20, padx=20, fill="both", expand=True)
         self.results_output.configure(state="normal")  # Разблокируем
         self.results_output.delete("1.0", "end")  # Очищаем (если нужно)
         self.results_output.insert("end", marked_text)  # Вставляем
