@@ -1,6 +1,7 @@
 from tkinter import filedialog
 
 import customtkinter
+from PIL import Image
 
 from src.windows.base_window import BaseWindow
 
@@ -35,3 +36,13 @@ class UIComponents:
                     return file.read()
             except Exception as e:
                 print(f"Ошибка при загрузке файла: {e}")
+
+    @staticmethod
+    def create_img_element(image_path=None):
+        """Загружает иконку из файла или использует встроенную"""
+        try:
+            image = Image.open(image_path)
+            return customtkinter.CTkImage(light_image=image, dark_image=image, size=(20, 20))
+        except Exception as e:
+            print(f"Ошибка загрузки иконки: {e}")
+            return None

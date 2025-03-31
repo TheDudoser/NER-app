@@ -14,6 +14,7 @@ class AddTextWindow(BaseWindow):
     def __init__(self, parent):
         super().__init__(parent, title="Разметка нового текста", width=900, height=700)
         self.text_input = None
+        self.upload_button = None
         self.process_button = None
         self.results_frame = None
         self.results_output = None
@@ -36,12 +37,26 @@ class AddTextWindow(BaseWindow):
         threading.Thread(target=self.load_model, daemon=True).start()
 
     def render_text_input_and_process_btn(self):
-        """Отображение ввода исходного текста и кнопки Разметить"""
+        """Отображение ввода исходного текста и кнопок"""
         text_frame = customtkinter.CTkFrame(self)
         text_frame.pack(pady=20, padx=20, fill="both", expand=False)
 
-        text_label = customtkinter.CTkLabel(text_frame, text="Введите текст для разметки:", font=("Arial", 14))
-        text_label.pack(pady=10)
+        # Верхняя панель только с кнопкой загрузки файла
+        upload_panel = customtkinter.CTkFrame(text_frame, fg_color="transparent")
+        upload_panel.pack(pady=(30,0), fill="x")
+
+        # Кнопка загрузки файла с иконкой (центрированная)
+        self.upload_button = customtkinter.CTkButton(
+            upload_panel,
+            text="",  # Без текста
+            width=40,
+            image=UIComponents.create_img_element('public/img/file_icon.png'),
+            command=self.handle_file_upload,
+        )
+        self.upload_button.pack(side="left", padx=10)
+
+        text_label = customtkinter.CTkLabel(upload_panel, text="Введите текст для разметки:", font=("Arial", 14))
+        text_label.pack(side="left")
 
         # Создаем текстовое поле
         self.text_input = customtkinter.CTkTextbox(
@@ -49,14 +64,30 @@ class AddTextWindow(BaseWindow):
             font=("Arial", 12),
             wrap="word",
             height=200,
-            state="normal",  # Убедитесь, что состояние "normal" для редактирования
+            state="normal",
             undo=True,
             maxundo=-1
         )
         self.text_input.pack(pady=10, padx=10, fill="both", expand=False)
 
-        self.process_button = customtkinter.CTkButton(text_frame, text="Разметить", command=self.start_processing)
-        self.process_button.pack(pady=20)
+        # Кнопка обработки снизу
+        self.process_button = customtkinter.CTkButton(
+            text_frame,
+            text="Разметить",
+            command=self.start_processing
+        )
+        self.process_button.pack(pady=(0, 10))
+
+    def handle_file_upload(self):
+        """Обрабатывает загрузку файла и вставляет его содержимое в текстовое поле"""
+        file_content = UIComponents.upload_file()
+        if file_content:
+            # Очищаем текущее содержимое и вставляем текст из файла
+            self.text_input.configure(state="normal")
+            self.text_input.delete("1.0", "end")
+            self.text_input.insert("1.0", file_content)
+        else:
+            self.show_error("Ошибка при загрузке файла")
 
     def render_loading_indicator(self):
         [
@@ -148,12 +179,14 @@ class AddTextWindow(BaseWindow):
     def disable_ui(self):
         """Разблокирует элементы UI после обработки"""
         self.text_input.configure(state="disabled")
+        self.upload_button.configure(state="disabled")
         self.process_button.configure(state="disabled")
         self.back_button.configure(state="disabled")
 
     def enable_ui(self):
         """Разблокирует элементы UI после обработки"""
         self.text_input.configure(state="normal")
+        self.upload_button.configure(state="normal")
         self.process_button.configure(state="normal")
         self.back_button.configure(state="normal")
 
