@@ -26,6 +26,6 @@ def prepare_entities(entities, text):
 
     # Проверяем, что marked_text не пустой
     print()
-    print("DEBUG - Marked Text:", repr(marked_text))  # Для отладки
+    print("DEBUG - Marked Text:\n", marked_text)  # Для отладки
 
     return marked_text

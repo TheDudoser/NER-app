@@ -157,7 +157,6 @@ class AddTextWindow(BaseWindow):
             entities = self.ner_model.predict(text)
 
             self.hide_loading()
-            # self.render_results_display()
             self.display_results(entities, text)
 
         except Exception as e:
@@ -169,10 +168,15 @@ class AddTextWindow(BaseWindow):
     def display_results(self, entities, text):
         marked_text = prepare_entities(entities, text)
 
-        # Вставляем в CTkTextbox (предварительно разблокировав)
+        # Настройка моноширинного шрифта для результатов
+        result_font = customtkinter.CTkFont(family="Courier", size=12)
+
         self.results_frame.pack(pady=20, padx=20, fill="both", expand=True)
-        self.results_output.configure(state="normal")  # Разблокируем
-        self.results_output.delete("1.0", "end")  # Очищаем (если нужно)
+        self.results_output.configure(
+            state="normal",
+            font=result_font  # Устанавливаем моноширинный шрифт
+        )
+        self.results_output.delete("1.0", "end")  # Очищаем
         self.results_output.insert("end", marked_text)  # Вставляем
         self.results_output.configure(state="disabled")  # Блокируем
 
