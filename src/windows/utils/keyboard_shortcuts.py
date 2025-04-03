@@ -1,4 +1,4 @@
-from src.windows.base_window import BaseWindow
+from ...windows.base_window import BaseWindow
 
 
 def setup_keyboard_shortcuts(window: BaseWindow):

@@ -2,12 +2,13 @@ import threading
 
 import customtkinter
 
-from ner import prepare_entities
 from .base_window import BaseWindow
 from .error_dialog import ErrorDialog
 from .utils import setup_keyboard_shortcuts
 from .components import UIComponents
-from ner.ner_model import NERModel
+
+from ..ner import prepare_entities
+from ..ner import NERModel
 
 
 class AddTextWindow(BaseWindow):
