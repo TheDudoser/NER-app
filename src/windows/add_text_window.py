@@ -1,5 +1,4 @@
 import threading
-
 import customtkinter
 
 from .base_window import BaseWindow
@@ -7,8 +6,8 @@ from .error_dialog import ErrorDialog
 from .utils import setup_keyboard_shortcuts
 from .components import UIComponents
 
-from ..ner import prepare_entities
-from ..ner import NERModel
+from src.ner import prepare_entities
+from src.ner import NERModel
 
 
 class AddTextWindow(BaseWindow):
@@ -44,7 +43,7 @@ class AddTextWindow(BaseWindow):
 
         # Верхняя панель только с кнопкой загрузки файла
         upload_panel = customtkinter.CTkFrame(text_frame, fg_color="transparent")
-        upload_panel.pack(pady=(30,0), fill="x")
+        upload_panel.pack(pady=(30, 0), fill="x")
 
         # Кнопка загрузки файла с иконкой (центрированная)
         self.upload_button = customtkinter.CTkButton(
