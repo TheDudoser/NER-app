@@ -7,8 +7,8 @@ from .error_dialog import ErrorDialog
 from .utils import setup_keyboard_shortcuts
 from .components import UIComponents
 
-from ..ner import prepare_entities
-from ..ner import NERModel
+from src.ner import prepare_entities
+from src.ner import NERModel
 
 
 class AddTextWindow(BaseWindow):
