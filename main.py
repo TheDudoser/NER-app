@@ -1,3 +1,5 @@
+import time
+
 from fastapi import FastAPI, Request, UploadFile, File
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -27,7 +29,10 @@ app.mount("/public", StaticFiles(directory='public'))
 # Инициализация анализатора
 phrase_extractor = PhraseExtractor()
 
-# Добавим в начало файла
+# Создаём папки для хранения промежуточных данных
+ANALYSIS_DIR = "analysis"
+os.makedirs(ANALYSIS_DIR, exist_ok=True)
+
 DICTIONARIES_DIR = "dictionaries"
 os.makedirs(DICTIONARIES_DIR, exist_ok=True)
 
@@ -92,7 +97,7 @@ async def save_analysis(request: Request):
     try:
         data = await request.json()
         file_id = str(uuid4())
-        filename = f"{DICTIONARIES_DIR}/analysis_{file_id}.json"
+        filename = f"{ANALYSIS_DIR}/analysis_{file_id}.json"
 
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
@@ -107,7 +112,7 @@ async def save_analysis(request: Request):
 async def create_dictionary(request: Request, file_id: str):
     """Страница для создания словаря из сохраненного анализа"""
     try:
-        filename = f"{DICTIONARIES_DIR}/analysis_{file_id}.json"
+        filename = f"{ANALYSIS_DIR}/analysis_{file_id}.json"
         with open(filename, 'r', encoding='utf-8') as f:
             analysis_data = json.load(f)
 
@@ -135,12 +140,13 @@ async def create_dictionary(request: Request, file_id: str):
         })
 
 
-@app.post("/save-dictionary/{file_id}")
-async def save_dictionary(request: Request, file_id: str):
+@app.post("/save-dictionary")
+async def save_dictionary(request: Request):
     """Сохранение готового словаря"""
     try:
         data = await request.json()
-        filename = f"{DICTIONARIES_DIR}/dictionary_{file_id}.json"
+        utc = time.gmtime(time.time())
+        filename = f"{DICTIONARIES_DIR}/dictionary_{int(time.mktime(utc))}.json"
 
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)

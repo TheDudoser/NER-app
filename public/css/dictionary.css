@@ -7,6 +7,7 @@
 }
 
 .phrase-card {
+    position: relative;
     background-color: white;
     border: 1px solid #dee2e6;
     border-radius: 4px;
@@ -40,4 +41,72 @@
 .phrase-info .badge {
     font-size: 0.7em;
     padding: 2px 5px;
+}
+
+/* Стили для соединений */
+.connection-mode .phrase-card {
+    cursor: pointer;
+}
+
+.connection-line {
+    position: absolute;
+    background-color: #0d6efd;
+    height: 2px;
+    transform-origin: left center;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.connect-btn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background-color: #0d6efd;
+    color: white;
+    border-radius: 50%;
+    font-size: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.connect-btn:hover {
+    background-color: #0b5ed7;
+}
+
+.connected {
+    background-color: #d1e7dd;
+    border-color: #badbcc;
+}
+
+.connection-container {
+    position: relative;
+    min-height: 400px;
+}
+
+.delete-connection {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 16px;
+    height: 16px;
+    background-color: #dc3545;
+    color: white;
+    border-radius: 50%;
+    font-size: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.connection-line:hover .delete-connection {
+    opacity: 1;
 }

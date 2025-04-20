@@ -10,32 +10,45 @@
     <div class="card-body">
         <h5 class="card-title">Фразы для словаря</h5>
         <div class="alert alert-info">
-            Перетащите фразы в соответствующие колонки для формирования словаря
+            Перетащите фразы в соответствующие колонки для формирования словаря.
+            Для создания связей между элементами из разных колонок используйте кнопку "+" на карточке.
         </div>
 
-        <div class="row">
-            <div class="col-md-4">
-                <h6>Термины <small class="text-muted">(основные понятия)</small></h6>
-                <div id="terms-column" class="drop-column">
-                    {% for phrase in phrases %}
-                    <div class="phrase-card draggable" draggable="true" data-id="{{ phrase.id }}"
-                         data-tfidf="{{ phrase.tfidf }}" data-type="{{ phrase.pattern_type }}">
-                        {{ phrase.phrase }}
-                        <div class="phrase-info">
-                            <span class="badge bg-secondary">{{ phrase.pattern_type }}</span>
-                            <span class="badge bg-primary">{{ "%.3f"|format(phrase.tfidf) }}</span>
+        <div class="btn-group mb-3">
+            <button class="btn btn-primary" id="exportDictionaryBtn">Сохранить словарь</button>
+            <button class="btn btn-outline-secondary" id="clearConnectionsBtn">Очистить все связи</button>
+        </div>
+
+        <div class="mb-3">
+            <label for="dictionaryName" class="form-label">Название словаря:</label>
+            <input type="text" class="form-control" id="dictionaryName" placeholder="Введите название">
+        </div>
+
+        <div class="connection-container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h6>Термины <small class="text-muted">(основные понятия)</small></h6>
+                    <div id="terms-column" class="drop-column">
+                        {% for phrase in phrases %}
+                        <div class="phrase-card draggable" draggable="true" data-id="{{ phrase.id }}"
+                             data-tfidf="{{ phrase.tfidf }}" data-type="{{ phrase.pattern_type }}">
+                            {{ phrase.phrase }}
+                            <div class="phrase-info">
+                                <span class="badge bg-secondary">{{ phrase.pattern_type }}</span>
+                                <span class="badge bg-primary">{{ "%.3f"|format(phrase.tfidf) }}</span>
+                            </div>
                         </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 </div>
-            </div>
-            <div class="col-md-4">
-                <h6>Синонимы <small class="text-muted">(альтернативные названия)</small></h6>
-                <div id="synonyms-column" class="drop-column"></div>
-            </div>
-            <div class="col-md-4">
-                <h6>Значения <small class="text-muted">(описания терминов)</small></h6>
-                <div id="definitions-column" class="drop-column"></div>
+                <div class="col-md-4">
+                    <h6>Синонимы <small class="text-muted">(альтернативные названия)</small></h6>
+                    <div id="synonyms-column" class="drop-column"></div>
+                </div>
+                <div class="col-md-4">
+                    <h6>Значения <small class="text-muted">(описания терминов)</small></h6>
+                    <div id="definitions-column" class="drop-column"></div>
+                </div>
             </div>
         </div>
     </div>
