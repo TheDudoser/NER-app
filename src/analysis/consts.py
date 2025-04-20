@@ -36,7 +36,7 @@ PATTERNS = {
 
 # Подробное описание паттернов
 PATTERN_DESCRIPTIONS = {
-    SINGLE_WORD: "Однословное (Сущ)",
+    SINGLE_WORD: "Сущ",
     ADJECTIVAL: "Прил + Сущ",
     GENITIVE: "Сущ + Сущ",
     SUBSTANTIVE_WITH_PREPOSITION: "Сущ + предлог + Сущ",
@@ -64,4 +64,19 @@ POS_TAGS = {
     'PREP': 'предлог',
     'PRTF': 'П',
     'PRTS': 'П'
+}
+
+PATTERN_COLOR = {
+    SINGLE_WORD: 'blue',
+    ADJECTIVAL: 'green',
+    GENITIVE: 'yellow',
+    SUBSTANTIVE_WITH_PREPOSITION: 'magenta',
+    ADVERBIAL: 'cyan',
+    ADJECTIVAL_WORDY: 'lightgreen',
+    GENITIVE_WORDY: 'lightyellow',
+    ADJECTIVAL_GENITIVE: 'lightblue',
+    GENITIVE_ADJECTIVAL: 'lightpurple',
+    ADJECTIVAL_WITH_PREPOSITION: 'lightcyan',
+    GENITIVE_WITH_PREPOSITION: 'lightred',
+    ADVERBIAL_COMBINATION: 'white'
 }
