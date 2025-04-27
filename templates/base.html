@@ -11,12 +11,7 @@
 </head>
 <body>
     <div class="container py-4">
-        <header class="pb-3 mb-4 border-bottom">
-            <h1 class="display-5 fw-bold">Анализатор ключевых словосочетаний</h1>
-            <p class="col-md-8 fs-5 text-muted">
-                Анализ текста и выделение словосочетаний по типам с оценкой значимости
-            </p>
-        </header>
+        {% include "components/navbar.html" %}
 
         {% block content %}
         {% endblock %}

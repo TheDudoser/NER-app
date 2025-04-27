@@ -57,26 +57,16 @@
     pointer-events: none;
 }
 
-.connect-btn {
+.connect-svg {
     position: absolute;
-    top: 2px;
-    right: 2px;
-    width: 20px;
-    height: 20px;
-    border: none;
-    background-color: #0d6efd;
-    color: white;
-    border-radius: 50%;
-    font-size: 10px;
+    top: 20px;
+    right: 8px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
 }
 
-.connect-btn:hover {
-    background-color: #0b5ed7;
+.connect-svg:hover {
+    border-radius: 50%;
+    background-color: #7cb1ff;
 }
 
 .connected {

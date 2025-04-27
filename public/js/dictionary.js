@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Получаем элементы колонок
     const columns = document.querySelectorAll('.drop-column');
     let draggedItem = null;
@@ -8,16 +8,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Добавляем обработчики событий для перетаскивания
     columns.forEach(column => {
-        column.addEventListener('dragover', function(e) {
+        column.addEventListener('dragover', function (e) {
             e.preventDefault();
             this.classList.add('highlight');
         });
 
-        column.addEventListener('dragleave', function() {
+        column.addEventListener('dragleave', function () {
             this.classList.remove('highlight');
         });
 
-        column.addEventListener('drop', function(e) {
+        column.addEventListener('drop', function (e) {
             e.preventDefault();
             this.classList.remove('highlight');
 
@@ -29,37 +29,41 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Обработчики для элементов, которые можно перетаскивать
-    document.addEventListener('dragstart', function(e) {
+    document.addEventListener('dragstart', function (e) {
         if (e.target.classList.contains('draggable')) {
             draggedItem = e.target;
 
-            // Находим все соединения для перемещаемого элемента
             const connectionsToRemove = connectionLines.filter(conn =>
                 conn.from === draggedItem.dataset.id || conn.to === draggedItem.dataset.id
             );
 
-            // Удаляем соединения визуально
+            // Удаляем соединения и обновляем статус connected
             connectionsToRemove.forEach(conn => {
                 conn.line.remove();
+
+                // Проверяем оставшиеся связи для fromElement
+                const hasOtherFrom = connectionLines.some(c =>
+                    c.from === conn.fromElement.dataset.id && c !== conn
+                );
+                if (!hasOtherFrom) conn.fromElement.classList.remove('connected');
+
+                // Проверяем оставшиеся связи для toElement
+                const hasOtherTo = connectionLines.some(c =>
+                    c.to === conn.toElement.dataset.id && c !== conn
+                );
+                if (!hasOtherTo) conn.toElement.classList.remove('connected');
             });
 
-            // Удаляем соединения из массива
+            // Фильтруем массив соединений
             connectionLines = connectionLines.filter(conn =>
-                conn.from !== draggedItem.dataset.id && conn.to !== draggedItem.dataset.id
+                !(conn.from === draggedItem.dataset.id || conn.to === draggedItem.dataset.id)
             );
 
-            // Убираем класс connected с обоих концов
-            document.querySelectorAll('.phrase-card.connected').forEach(el => {
-                el.classList.remove('connected');
-            });
-
-            setTimeout(() => {
-                e.target.style.display = 'none';
-            }, 0);
+            setTimeout(() => e.target.style.display = 'none', 0);
         }
     });
 
-    document.addEventListener('dragend', function(e) {
+    document.addEventListener('dragend', function (e) {
         if (e.target.classList.contains('draggable')) {
             setTimeout(() => {
                 e.target.style.display = 'block';
@@ -69,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    document.addEventListener('dragend', function(e) {
+    document.addEventListener('dragend', function (e) {
         if (e.target.classList.contains('draggable')) {
             setTimeout(() => {
                 e.target.style.display = 'block';
@@ -85,15 +89,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Функция для создания кнопки соединения
     function addConnectButton(card) {
-        const btn = document.createElement('button');
-        btn.className = 'connect-btn';
-        btn.textContent = '+';
-        btn.title = 'Связать с другим элементом';
-        btn.addEventListener('click', function(e) {
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        const path1 = document.createElementNS("http://www.w3.org/2000/svg", 'path');
+        const path2 = document.createElementNS("http://www.w3.org/2000/svg", 'path');
+
+        svg.classList.add('connect-svg');
+        svg.setAttribute('viewbox', '0 0 16 16');
+        svg.setAttribute('width', '16px');
+        svg.setAttribute('height', '16px');
+        svg.setAttribute('fill', 'currentColor');
+
+        path1.setAttribute('d', 'M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16');
+        path2.setAttribute('d', 'M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4');
+
+        svg.appendChild(path1);
+        svg.appendChild(path2);
+
+        svg.addEventListener('click', function (e) {
             e.stopPropagation();
             toggleConnectionMode(card);
         });
-        card.appendChild(btn);
+        card.appendChild(svg);
     }
 
     // Функция для переключения режима соединения
@@ -101,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (connectionMode && sourceElement === card) {
             // Выходим из режима соединения
             connectionMode = false;
-            sourceElement.classList.remove('connected');
+            // sourceElement.classList.remove('connected');
             sourceElement = null;
             document.body.classList.remove('connection-mode');
         } else if (!connectionMode) {
@@ -115,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
             createConnection(sourceElement, card);
             // Выходим из режима соединения
             connectionMode = false;
-            sourceElement.classList.remove('connected');
+            // sourceElement.classList.remove('connected');
             sourceElement = null;
             document.body.classList.remove('connection-mode');
         }
@@ -152,7 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const deleteBtn = document.createElement('div');
         deleteBtn.className = 'delete-connection';
         deleteBtn.innerHTML = '&times;';
-        deleteBtn.addEventListener('click', function(e) {
+        deleteBtn.addEventListener('click', function (e) {
             e.stopPropagation();
             removeConnection(line);
         });
@@ -278,7 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        return { x, y };
+        return {x, y};
     }
 
     // Функция для обновления всех линий
@@ -291,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Обработчик клика в режиме соединения
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         if (!connectionMode || !sourceElement) return;
 
         const targetCard = e.target.closest('.phrase-card');
@@ -302,31 +318,34 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Обновляем позиции линий при изменении размера окна
-    window.addEventListener('resize', function() {
+    window.addEventListener('resize', function () {
         updateAllConnectionLines();
     });
 
     // Функция для получения данных словаря
     function getDictionaryData() {
+        let fileId = document.getElementById('file_id')?.textContent;
+        console.log(fileId)
         return {
+            fileId: fileId,
             terms: Array.from(document.getElementById('terms-column').children)
                 .map(el => ({
                     id: el.dataset.id,
-                    text: el.textContent.split('\n')[1].trim(),
+                    text: el.innerText.split('\n')[0].trim(),
                     tfidf: parseFloat(el.dataset.tfidf),
                     type: el.dataset.type
                 })),
             synonyms: Array.from(document.getElementById('synonyms-column').children)
                 .map(el => ({
                     id: el.dataset.id,
-                    text: el.textContent.split('\n')[1].trim(),
+                    text: el.innerText.split('\n')[0].trim(),
                     tfidf: parseFloat(el.dataset.tfidf),
                     type: el.dataset.type
                 })),
             definitions: Array.from(document.getElementById('definitions-column').children)
                 .map(el => ({
                     id: el.dataset.id,
-                    text: el.textContent.split('\n')[1].trim(),
+                    text: el.innerText.split('\n')[0].trim(),
                     tfidf: parseFloat(el.dataset.tfidf),
                     type: el.dataset.type
                 })),
@@ -412,7 +431,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Экспорт словаря
-    document.getElementById('exportDictionaryBtn').addEventListener('click', function() {
+    document.getElementById('exportDictionaryBtn').addEventListener('click', function () {
         const dictionaryName = document.getElementById('dictionaryName').value.trim();
         if (!dictionaryName) {
             alert('Введите название словаря');
@@ -420,32 +439,53 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const dictionary = getDictionaryData();
-        dictionary.createdAt = new Date();
         dictionary.name = dictionaryName;
 
-        fetch(`/save-dictionary`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(dictionary)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Словарь успешно сохранен');
-            } else {
-                alert('Ошибка при сохранении словаря: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Произошла ошибка');
-        });
+        if (dictionary.fileId !== undefined) {
+            fetch(`/update-dictionary/${dictionary.fileId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(dictionary)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Словарь успешно обновлён');
+                    } else {
+                        alert('Ошибка при обновлении словаря: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Произошла ошибка');
+                });
+        } else {
+            fetch(`/save-dictionary`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(dictionary)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Словарь успешно сохранен');
+                    } else {
+                        alert('Ошибка при сохранении словаря: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Произошла ошибка');
+                });
+        }
     });
 
     // Удаление всех связей
-    document.getElementById('clearConnectionsBtn').addEventListener('click', function() {
+    document.getElementById('clearConnectionsBtn').addEventListener('click', function () {
         // Удаляем все линии соединений
         document.querySelectorAll('.connection-line').forEach(line => line.remove());
 
@@ -457,4 +497,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Очищаем массив соединений
         connectionLines = [];
     });
+
+    // Проставление связей при редактировании
+    if (window.DICTIONARY_DATA) {
+        loadDictionaryData(window.DICTIONARY_DATA);
+    }
 });

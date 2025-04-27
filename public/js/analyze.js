@@ -16,40 +16,43 @@ document.getElementById('fileInput').addEventListener('change', function (e) {
     reader.readAsText(file);
 });
 
-document.getElementById('createDictionaryBtn').addEventListener('click', function() {
-    // Собираем данные для сохранения
-    const analysisData = {
-        phrases: Array.from(document.querySelectorAll('#resultsBody tr')).map(row => {
-            const cells = row.querySelectorAll('td');
-            return {
-                phrase: cells[2].textContent,
-                pattern_type: cells[0].textContent,
-                tfidf_score: parseFloat(cells[3].textContent)
-            };
-        }),
-        total_phrases: parseInt(document.getElementById('totalPhrases').textContent),
-        unique_patterns: parseInt(document.getElementById('uniquePatterns').textContent)
-    };
+const createDictBtn = document.getElementById('createDictionaryBtn');
+if (createDictBtn) {
+    createDictBtn.addEventListener('click', function () {
+        // Собираем данные для сохранения
+        const analysisData = {
+            phrases: Array.from(document.querySelectorAll('#resultsBody tr')).map(row => {
+                const cells = row.querySelectorAll('td');
+                return {
+                    phrase: cells[2].textContent,
+                    pattern_type: cells[0].textContent,
+                    tfidf_score: parseFloat(cells[3].textContent)
+                };
+            }),
+            total_phrases: parseInt(document.getElementById('totalPhrases').textContent),
+            unique_patterns: parseInt(document.getElementById('uniquePatterns').textContent)
+        };
 
-    // Отправляем данные на сервер
-    fetch('/save-analysis', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(analysisData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Перенаправляем на страницу словаря
-            window.location.href = `/create-dictionary/${data.file_id}`;
-        } else {
-            alert('Ошибка при сохранении анализа');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Произошла ошибка');
-    })
-});
+        // Отправляем данные на сервер
+        fetch('/save-analysis', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(analysisData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Перенаправляем на страницу словаря
+                    window.location.href = `/create-dictionary/${data.file_id}`;
+                } else {
+                    alert('Ошибка при сохранении анализа');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Произошла ошибка');
+            })
+    });
+}

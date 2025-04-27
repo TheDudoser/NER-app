@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block head %}
+    {{ super() }}
+    <link href="/public/css/error.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+    {% if error %}
+        <div class="error-message">
+            <span class="error-icon">⚠️</span>
+            <h2>Ошибка!</h2>
+            <p>{{ error }}</p>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block javascript %}
+    {{ super() }}
+{% endblock %}
