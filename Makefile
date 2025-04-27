@@ -14,6 +14,3 @@ install:
 
 freeze:
 	@$(PYTHON) -m pip freeze > requirements.txt
-
-start:
-	@$(PYTHON) -m src.main
