@@ -14,7 +14,8 @@ import logging
 
 import json
 import os
-from uuid import uuid4
+
+from src.input_text_worker.functions import get_json_hash
 
 app = FastAPI(title="Анализатор словосочетаний", version="1.0.0")
 
@@ -100,13 +101,16 @@ async def save_analysis(request: Request):
     """Сохранение результатов анализа для последующего редактирования"""
     try:
         data = await request.json()
-        file_id = str(uuid4())
-        filename = f"{ANALYSIS_DIR}/analysis_{file_id}.json"
+        # Ищем хэш текста чтобы каждый раз не сохранять новый файл
+        file_hash = get_json_hash(data)
 
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        filename = f"{ANALYSIS_DIR}/analysis_{file_hash}.json"
 
-        return {"success": True, "file_id": file_id}
+        if not os.path.exists(filename):
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+
+        return {"success": True, "file_id": file_hash}
     except Exception as e:
         logger.error(f"Error saving analysis: {str(e)}")
         return {"success": False, "message": str(e)}
@@ -174,7 +178,7 @@ async def update_dictionary(request: Request, file_id: str):
             with open(filename, 'r', encoding='utf-8') as f:
                 old_data = json.load(f)
             data['createdAt'] = old_data.get('createdAt')
-        data['updatedAt'] = datetime.utcnow().isoformat()
+        data['updatedAt'] = datetime.now().isoformat()
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         return {"success": True, "message": "Словарь обновлён"}
@@ -264,6 +268,13 @@ async def edit_dictionary(request: Request, dictionary_id: str):
             "request": request,
             "error": f"Ошибка загрузки словаря: {str(e)}"
         })
+
+
+@app.get("/search")
+async def search(request: Request):
+    return templates.TemplateResponse("search.html", {
+        "request": request
+    })
 
 
 if __name__ == "__main__":
