@@ -1,0 +1,109 @@
+from datetime import datetime
+import json
+import os
+import time
+
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+from starlette.requests import Request
+from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_404_NOT_FOUND
+
+from src.input_text_worker.functions import get_json_hash
+from config import ANALYSIS_DIR, logger, DICTIONARIES_DIR
+
+api_router = APIRouter(prefix="/api", tags=["api"])
+
+
+@api_router.post("/save-analysis")
+async def save_analysis(request: Request) -> JSONResponse:
+    """Сохранение результатов анализа для последующего редактирования"""
+    try:
+        data = await request.json()
+        # Ищем хэш текста чтобы каждый раз не сохранять новый файл
+        file_hash = get_json_hash(data)
+
+        filename = f"{ANALYSIS_DIR}/analysis_{file_hash}.json"
+
+        if not os.path.exists(filename):
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+
+        return JSONResponse(content={"success": True, "file_id": file_hash})
+    except Exception as e:
+        logger.error(f"Error saving analysis: {str(e)}")
+        return JSONResponse(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"success": False, "message": str(e)}
+        )
+
+
+@api_router.post("/save-dictionary")
+async def save_dictionary(request: Request) -> JSONResponse:
+    """Сохранение готового словаря"""
+    try:
+        data = await request.json()
+        utc = time.gmtime(time.time())
+        filename = f"{DICTIONARIES_DIR}/dictionary_{int(time.mktime(utc))}.json"
+
+        now = datetime.now().isoformat()
+        data['createdAt'] = now
+
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+        return JSONResponse(content={"success": True, "message": "Словарь сохранен"})
+    except Exception as e:
+        logger.error(f"Error saving dictionary: {str(e)}")
+        return JSONResponse(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"success": False, "message": str(e)}
+        )
+
+
+@api_router.patch("/update-dictionary/{file_id}")
+async def update_dictionary(request: Request, file_id: str) -> JSONResponse:
+    try:
+        data = await request.json()
+        filename = f"{DICTIONARIES_DIR}/dictionary_{file_id}.json"
+        # Читаем старый словарь, чтобы не потерять createdAt
+        if os.path.exists(filename):
+            with open(filename, 'r', encoding='utf-8') as f:
+                old_data = json.load(f)
+            data['createdAt'] = old_data.get('createdAt')
+        else:
+            logger.error(f"Dictionary dictionary_{file_id}.json for update not found")
+            return JSONResponse(
+                status_code=HTTP_404_NOT_FOUND,
+                content={"success": False, "message": f"Dictionary dictionary_{file_id}.json for update not found"}
+            )
+
+        data['updatedAt'] = datetime.now().isoformat()
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return JSONResponse(content={"success": True, "message": "Словарь обновлён"})
+    except Exception as e:
+        logger.error(f"Error updating dictionary: {str(e)}")
+        return JSONResponse(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"success": False, "message": str(e)}
+        )
+
+
+@api_router.delete("/delete-dictionary/{dictionary_id}")
+async def delete_dictionary(dictionary_id: str) -> JSONResponse:
+    """Удаление словаря"""
+    try:
+        filename = f"{DICTIONARIES_DIR}/dictionary_{dictionary_id}.json"
+        if os.path.exists(filename):
+            os.remove(filename)
+            return JSONResponse(content={"success": True, "message": "Словарь удален"})
+        return JSONResponse(
+            status_code=HTTP_404_NOT_FOUND,
+            content={"success": False, "message": "Файл не найден"}
+        )
+    except Exception as e:
+        logger.error(f"Error deleting dictionary: {str(e)}")
+        return JSONResponse(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"success": False, "message": str(e)}
+        )
