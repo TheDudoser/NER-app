@@ -135,6 +135,13 @@ async def create_dictionary(request: Request, file_id: str):
             for idx, phrase in enumerate(analysis_data["phrases"])
         ]
 
+        # 1) Добавляем лемму главного существительного
+        for item in phrases:
+            item['head_noun'] = phrase_extractor.get_head_noun_lemma(item['phrase'])
+
+        # 2) Сортируем: сначала по head_noun, потом по тексту для стабильности
+        phrases.sort(key=lambda x: (x['head_noun'], x['phrase']))
+
         return templates.TemplateResponse("dictionary.html", {
             "request": request,
             "phrases": phrases,
@@ -236,37 +243,36 @@ async def delete_dictionary(dictionary_id: str):
 
 @app.get("/edit-dictionary/{dictionary_id}")
 async def edit_dictionary(request: Request, dictionary_id: str):
-    """Страница редактирования существующего словаря"""
     try:
         filename = f"{DICTIONARIES_DIR}/dictionary_{dictionary_id}.json"
         with open(filename, 'r', encoding='utf-8') as f:
             dictionary_data = json.load(f)
 
-        # Преобразуем данные для шаблона
-        phrases = []
-        # Добавляем все фразы из всех категорий
-        for category in ['terms', 'synonyms', 'definitions']:
-            if dictionary_data.get(category):
-                phrases.extend(dictionary_data[category])
+        # 1. Извлекаем и обогащаем термины
+        terms = dictionary_data.get('terms', [])
+        for item in terms:
+            item['phrase'] = item['text']
+            item['pattern_type'] = item['type']
+            item['head_noun'] = phrase_extractor.get_head_noun_lemma(item['phrase'])
 
-        # Убедимся, что у всех фраз есть ID
-        for phrase in phrases:
-            phrase['phrase'] = phrase['text']
-            phrase['pattern_type'] = phrase['type']
+        # 2. Сортируем термины по head_noun и тексту фразы
+        terms.sort(key=lambda x: (x['head_noun'], x['phrase']))
+
+        # 3. Записываем обратно в dictionary_data
+        dictionary_data['terms'] = terms
 
         return templates.TemplateResponse("dictionary.html", {
             "request": request,
-            "phrases": phrases,
             "dictionary_name": dictionary_data.get('name', ''),
             "dictionary_data": dictionary_data,
             "file_id": dictionary_id,
-            "is_edit_mode": True  # Добавляем флаг режима редактирования
+            "is_edit_mode": True
         })
     except Exception as e:
-        logger.error(f"Error loading dictionary: {str(e)}")
+        logger.error(f"Error loading dictionary: {e}")
         return templates.TemplateResponse("error.html", {
             "request": request,
-            "error": f"Ошибка загрузки словаря: {str(e)}"
+            "error": f"Ошибка загрузки словаря: {e}"
         })
 
 

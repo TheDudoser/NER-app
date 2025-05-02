@@ -69,3 +69,15 @@ class PhraseExtractor:
             'total_phrases': len(phrase_stats),
             'unique_patterns': len({p['pattern_type'] for p in phrase_stats})
         }
+
+    def get_head_noun_lemma(self, phrase: str) -> str:
+        """
+        Ищет последнее слово с тегом NOUN, возвращает его нормальную форму.
+        Если существительное не найдено, возвращает пустую строку.
+        """
+        words = phrase.split()
+        for word in reversed(words):
+            parsed = self.morph.parse(word)[0]
+            if parsed.tag.POS == 'NOUN':
+                return parsed.normal_form
+        return ''
