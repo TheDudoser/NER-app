@@ -20,9 +20,23 @@ document.addEventListener('DOMContentLoaded', function () {
         column.addEventListener('drop', function (e) {
             e.preventDefault();
             this.classList.remove('highlight');
-
+            // Вставка не всегда в конец, а туда, куда перетаскиваем
             if (draggedItem) {
-                this.appendChild(draggedItem);
+                let afterElement = null;
+                const mouseY = e.clientY;
+                const cards = Array.from(this.querySelectorAll('.phrase-card:not([style*="display: none"])'));
+                for (let card of cards) {
+                    const rect = card.getBoundingClientRect();
+                    if (mouseY < rect.top + rect.height / 2) {
+                        afterElement = card;
+                        break;
+                    }
+                }
+                if (afterElement) {
+                    this.insertBefore(draggedItem, afterElement);
+                } else {
+                    this.appendChild(draggedItem);
+                }
                 updateAllConnectionLines();
             }
         });
