@@ -16,7 +16,7 @@ api_router = APIRouter(prefix="/api", tags=["api"])
 
 @api_router.post("/analysis")
 async def save_analysis(request: Request) -> JSONResponse:
-    """Сохранение результатов анализа для последующего редактирования"""
+    """Сохранение результатов анализа для последующего создания из них словаря"""
     try:
         data = await request.json()
         # Ищем хэш текста чтобы каждый раз не сохранять новый файл
@@ -39,7 +39,6 @@ async def save_analysis(request: Request) -> JSONResponse:
 
 @api_router.post("/dictionary")
 async def save_dictionary(request: Request) -> JSONResponse:
-    """Сохранение готового словаря"""
     try:
         data = await request.json()
         utc = time.gmtime(time.time())
@@ -65,6 +64,7 @@ async def update_dictionary(request: Request, dictionary_id: str) -> JSONRespons
     try:
         data = await request.json()
         filename = f"{DICTIONARIES_DIR}/dictionary_{dictionary_id}.json"
+
         # Читаем старый словарь, чтобы не потерять createdAt
         if os.path.exists(filename):
             with open(filename, 'r', encoding='utf-8') as f:
@@ -91,7 +91,6 @@ async def update_dictionary(request: Request, dictionary_id: str) -> JSONRespons
 
 @api_router.delete("/dictionary/{dictionary_id}")
 async def delete_dictionary(dictionary_id: str) -> JSONResponse:
-    """Удаление словаря"""
     try:
         filename = f"{DICTIONARIES_DIR}/dictionary_{dictionary_id}.json"
         if os.path.exists(filename):

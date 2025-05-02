@@ -20,9 +20,9 @@ phrase_extractor = PhraseExtractor()
 templates.env.filters["datetimeformat"] = lambda value: datetime.fromtimestamp(value).strftime('%d.%m.%Y %H:%M')
 
 
-@views_router.get("/", response_class=HTMLResponse)
+@views_router.get("/")
 async def read_root(request: Request) -> HTMLResponse:
-    """Обработчик GET-запроса для главной страницы"""
+    """Страница анализа текста"""
     return templates.TemplateResponse("index.html", {"request": request, "pattern_with_colors": PATTERN_COLOR})
 
 
@@ -30,9 +30,9 @@ async def read_root(request: Request) -> HTMLResponse:
 async def analyze_text(
         request: Request,
         text: Optional[str] = Form(None),
-        file: UploadFile = File(None)  # Изменено на File(None) вместо None
-):
-    """Обработчик POST-запроса для анализа текста"""
+        file: UploadFile = File(None)
+) -> HTMLResponse:
+    """Обработка и отображение заданного для анализа текста"""
     if not text and not file:
         return templates.TemplateResponse("index.html", {
             "request": request,
@@ -40,7 +40,7 @@ async def analyze_text(
         })
 
     content = text or ""
-    if file and file.filename:  # Проверяем, что файл был загружен
+    if file and file.filename:
         try:
             file_content = (await file.read()).decode("utf-8")
             content = f"{content}\n{file_content}" if content else file_content
@@ -75,8 +75,8 @@ async def analyze_text(
 
 
 @views_router.get("/dictionary/create")
-async def create_dictionary(request: Request, analysis_file_id: str):
-    """Страница для создания словаря из сохраненного анализа"""
+async def create_dictionary(request: Request, analysis_file_id: str) -> HTMLResponse:
+    """Страница для создания словаря из сохраненных ранее результатов анализа"""
     try:
         filename = f"{ANALYSIS_DIR}/analysis_{analysis_file_id}.json"
         with open(filename, 'r', encoding='utf-8') as f:
@@ -114,7 +114,7 @@ async def create_dictionary(request: Request, analysis_file_id: str):
 
 
 @views_router.get("/dictionaries")
-async def list_dictionaries(request: Request):
+async def list_dictionaries(request: Request) -> HTMLResponse:
     """Страница со списком всех словарей"""
     try:
         dictionaries = []
@@ -131,7 +131,7 @@ async def list_dictionaries(request: Request):
                         'connections_count': len(data.get('connections', []))
                     })
 
-        # Сортируем по дате создания (новые сначала)
+        # Сортируем словари по дате создания (сначала новые)
         dictionaries.sort(key=lambda x: x['created_at'], reverse=True)
 
         return templates.TemplateResponse("dictionaries_list.html", {
@@ -147,7 +147,7 @@ async def list_dictionaries(request: Request):
 
 
 @views_router.get("/dictionary/{dictionary_id}/edit")
-async def edit_dictionary(request: Request, dictionary_id: str):
+async def edit_dictionary(request: Request, dictionary_id: str) -> HTMLResponse:
     try:
         filename = f"{DICTIONARIES_DIR}/dictionary_{dictionary_id}.json"
         with open(filename, 'r', encoding='utf-8') as f:
@@ -182,7 +182,7 @@ async def edit_dictionary(request: Request, dictionary_id: str):
 
 
 @views_router.get("/search")
-async def search(request: Request):
+async def search(request: Request) -> HTMLResponse:
     return templates.TemplateResponse("search.html", {
         "request": request
     })
