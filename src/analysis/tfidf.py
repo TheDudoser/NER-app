@@ -1,4 +1,5 @@
 import re
+from functools import partial
 from typing import List, Tuple
 from pymorphy3 import MorphAnalyzer
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -7,10 +8,9 @@ import numpy as np
 morph = MorphAnalyzer()
 
 
-def lemma_analyzer(text: str) -> List[str]:
+def lemma_analyzer(text: str, max_n: int) -> List[str]:
     # 1) разбиваем на слова и знаки препинания
     tokens = re.findall(r'\w+|[^\w\s]', text, flags=re.UNICODE)
-    max_n = 3
     ngrams: List[str] = []
 
     # 2) скользящим окном строим n-граммы, пропуская окна с любым не-алфавитным токеном
@@ -26,12 +26,12 @@ def lemma_analyzer(text: str) -> List[str]:
 
 def extract_top_ngrams_with_tfidf(
         text: str,
-        ngram_range: Tuple[int, int] = (1, 3),
+        ngram_count: int = 3,
         top_k: int = 10000
 ) -> List[Tuple[str, float]]:
+    bound_lemma_analyzer = partial(lemma_analyzer, max_n=ngram_count)
     vectorizer = TfidfVectorizer(
-        analyzer=lemma_analyzer,  # весь разбор + лемматизация здесь
-        ngram_range=ngram_range,
+        analyzer=bound_lemma_analyzer,
         use_idf=True
     )
     tfidf_matrix = vectorizer.fit_transform([text])
