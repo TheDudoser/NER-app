@@ -6,6 +6,10 @@ document.addEventListener('DOMContentLoaded', function () {
     let sourceElement = null;
     let connectionLines = [];
 
+    // Выбор порога if-idf
+    const range = document.getElementById('tfidfRange');
+    const number = document.getElementById('tfidfValue');
+
     // Добавляем обработчики событий для перетаскивания
     columns.forEach(column => {
         column.addEventListener('dragover', function (e) {
@@ -339,41 +343,45 @@ document.addEventListener('DOMContentLoaded', function () {
     // Функция для получения данных словаря
     function getDictionaryData() {
         let fileId = document.getElementById('file_id')?.textContent;
-        console.log(fileId)
         return {
             fileId: fileId,
             namedEntities: Array.from(document.getElementById('named-entities-column').children)
                 .map(el => ({
                     id: el.dataset.id,
-                    text: el.innerText.split('\n')[0].trim(),
+                    text: el.textContent.split('\n')[1].trim(),
                     tfidf: parseFloat(el.dataset.tfidf),
-                    type: el.dataset.type
+                    type: el.dataset.type,
+                    hidden: el.dataset.hidden === 'true'
                 })),
             terms: Array.from(document.getElementById('terms-column').children)
                 .map(el => ({
                     id: el.dataset.id,
-                    text: el.innerText.split('\n')[0].trim(),
+                    text: el.textContent.split('\n')[1].trim(),
                     tfidf: parseFloat(el.dataset.tfidf),
-                    type: el.dataset.type
+                    type: el.dataset.type,
+                    hidden: el.dataset.hidden === 'true'
                 })),
             synonyms: Array.from(document.getElementById('synonyms-column').children)
                 .map(el => ({
                     id: el.dataset.id,
-                    text: el.innerText.split('\n')[0].trim(),
+                    text: el.textContent.split('\n')[1].trim(),
                     tfidf: parseFloat(el.dataset.tfidf),
-                    type: el.dataset.type
+                    type: el.dataset.type,
+                    hidden: el.dataset.hidden === 'true'
                 })),
             definitions: Array.from(document.getElementById('definitions-column').children)
                 .map(el => ({
                     id: el.dataset.id,
-                    text: el.innerText.split('\n')[0].trim(),
+                    text: el.textContent.split('\n')[1].trim(),
                     tfidf: parseFloat(el.dataset.tfidf),
-                    type: el.dataset.type
+                    type: el.dataset.type,
+                    hidden: el.dataset.hidden === 'true'
                 })),
             connections: connectionLines.map(conn => ({
                 from: conn.from,
                 to: conn.to
-            }))
+            })),
+            ifidfRange: parseFloat(number.value)
         };
     }
 
@@ -409,6 +417,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
         }
+
+        // Обновляем фильтр по tf-idf
+        number.value = data.ifidfRange;
+        range.value = data.ifidfRange;
+        applyTfidfFilter(data.ifidfRange);
     }
 
     // Функция для создания карточки фразы
@@ -526,5 +539,33 @@ document.addEventListener('DOMContentLoaded', function () {
     // Проставление связей при редактировании
     if (window.DICTIONARY_DATA) {
         loadDictionaryData(window.DICTIONARY_DATA);
+    }
+
+    // Логика работы с порогом ifidf
+    range.addEventListener('input', () => {
+      number.value = range.value;
+      applyTfidfFilter(parseFloat(range.value));
+    });
+
+    number.addEventListener('input', () => {
+      let val = parseFloat(number.value);
+      if (isNaN(val)) val = 0;
+      val = Math.min(Math.max(val, 0), 1);
+      range.value = val.toFixed(3);
+      applyTfidfFilter(val);
+    });
+
+    function applyTfidfFilter(threshold) {
+      document.querySelectorAll('.phrase-card').forEach(card => {
+        const tfidf = parseFloat(card.dataset.tfidf);
+        if (tfidf < threshold) {
+          card.style.display = 'none';
+          card.dataset.hidden = 'true';
+        } else {
+          card.style.display = 'block';
+          card.dataset.hidden = 'false';
+        }
+      });
+      updateAllConnectionLines();
     }
 });
