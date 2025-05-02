@@ -1,29 +1,41 @@
+import re
 from typing import List, Tuple
+from pymorphy3 import MorphAnalyzer
 from sklearn.feature_extraction.text import TfidfVectorizer
 import numpy as np
 
-from src.analysis.utils import preprocess_text
+morph = MorphAnalyzer()
+
+
+def lemma_analyzer(text: str) -> List[str]:
+    # 1) разбиваем на слова и знаки препинания
+    tokens = re.findall(r'\w+|[^\w\s]', text, flags=re.UNICODE)
+    max_n = 3
+    ngrams: List[str] = []
+
+    # 2) скользящим окном строим n-граммы, пропуская окна с любым не-алфавитным токеном
+    for n in range(1, max_n + 1):
+        for i in range(len(tokens) - n + 1):
+            window = tokens[i:i + n]
+            if all(tok.isalpha() for tok in window):
+                # 3) лемматизируем каждое слово в окне
+                lemmas = [morph.parse(tok)[0].normal_form for tok in window]
+                ngrams.append(' '.join(lemmas))
+    return ngrams
 
 
 def extract_top_ngrams_with_tfidf(
         text: str,
         ngram_range: Tuple[int, int] = (1, 3),
-        top_k: int = 100
+        top_k: int = 10000
 ) -> List[Tuple[str, float]]:
-    """
-    Извлекает топ-n n-грамм текста с наибольшим TF-IDF.
-    Возвращает список кортежей (фраза, tfidf_score).
-    """
     vectorizer = TfidfVectorizer(
-        tokenizer=preprocess_text,
+        analyzer=lemma_analyzer,  # весь разбор + лемматизация здесь
         ngram_range=ngram_range,
         use_idf=True
     )
-
     tfidf_matrix = vectorizer.fit_transform([text])
     features = vectorizer.get_feature_names_out()
     scores = np.array(tfidf_matrix.sum(axis=0)).flatten()
-
-    # Сортируем n-граммы по TF-IDF
-    top_indices = np.argsort(scores)[-top_k:][::-1]
-    return [(features[i], scores[i]) for i in top_indices if scores[i] > 0]
+    top_idx = np.argsort(scores)[-top_k:][::-1]
+    return [(features[i], float(scores[i])) for i in top_idx if scores[i] > 0]

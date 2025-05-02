@@ -1,10 +1,4 @@
-import re
 from typing import List
-
-
-def preprocess_text(text: str) -> List[str]:
-    """Токенизация текста с сохранением границ слов"""
-    return re.findall(r'[а-яёА-ЯЁ]+', text.lower())
 
 
 def match_complex_pattern(pos_window: List[str], pattern: List) -> bool:
