@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const dictionaryId = this.dataset.id;
 
             if (confirm('Вы уверены, что хотите удалить этот словарь? Это действие нельзя отменить.')) {
-                fetch(`/api/delete-dictionary/${dictionaryId}`, {
+                fetch(`/api/dictionary/${dictionaryId}`, {
                     method: 'DELETE'
                 })
                 .then(response => response.json())

@@ -74,11 +74,11 @@ async def analyze_text(
         })
 
 
-@views_router.get("/create-dictionary/{file_id}")
-async def create_dictionary(request: Request, file_id: str):
+@views_router.get("/dictionary/create")
+async def create_dictionary(request: Request, analysis_file_id: str):
     """Страница для создания словаря из сохраненного анализа"""
     try:
-        filename = f"{ANALYSIS_DIR}/analysis_{file_id}.json"
+        filename = f"{ANALYSIS_DIR}/analysis_{analysis_file_id}.json"
         with open(filename, 'r', encoding='utf-8') as f:
             analysis_data = json.load(f)
 
@@ -103,7 +103,7 @@ async def create_dictionary(request: Request, file_id: str):
         return templates.TemplateResponse("dictionary.html", {
             "request": request,
             "phrases": phrases,
-            "file_id": file_id
+            "file_id": analysis_file_id
         })
     except Exception as e:
         logger.error(f"Error loading analysis: {str(e)}")
@@ -146,7 +146,7 @@ async def list_dictionaries(request: Request):
         })
 
 
-@views_router.get("/edit-dictionary/{dictionary_id}")
+@views_router.get("/dictionary/{dictionary_id}/edit")
 async def edit_dictionary(request: Request, dictionary_id: str):
     try:
         filename = f"{DICTIONARIES_DIR}/dictionary_{dictionary_id}.json"

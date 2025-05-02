@@ -34,7 +34,7 @@ if (createDictBtn) {
         };
 
         // Отправляем данные на сервер
-        fetch('/api/save-analysis', {
+        fetch('/api/analysis', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -45,7 +45,7 @@ if (createDictBtn) {
             .then(data => {
                 if (data.success) {
                     // Перенаправляем на страницу словаря
-                    window.location.href = `/create-dictionary/${data.file_id}`;
+                    window.location.href = `/dictionary/create?analysis_file_id=${data.file_id}`;
                 } else {
                     alert('Ошибка при сохранении анализа');
                 }

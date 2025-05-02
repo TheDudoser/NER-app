@@ -480,7 +480,7 @@ document.addEventListener('DOMContentLoaded', function () {
         dictionary.name = dictionaryName;
 
         if (dictionary.fileId !== undefined) {
-            fetch(`/api/update-dictionary/${dictionary.fileId}`, {
+            fetch(`/api/dictionary/${dictionary.fileId}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -500,7 +500,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     alert('Произошла ошибка');
                 });
         } else {
-            fetch(`/api/save-dictionary`, {
+            fetch(`/api/dictionary`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
