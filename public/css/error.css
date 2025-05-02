@@ -1,0 +1,19 @@
+/* Стили для сообщения об ошибке */
+.error-message {
+    background-color: #ffebee; /* Светло-красный фон */
+    color: #b71c1c; /* Темно-красный текст */
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 2px solid #ef9a9a;
+    margin: 2rem auto;
+    max-width: 600px;
+    text-align: center;
+    font-family: Arial, sans-serif;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.error-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: block;
+}

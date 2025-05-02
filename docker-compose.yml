@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    ports:
+      - "80:8000"
+    volumes:
+      - .:/app:delegated
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: always
