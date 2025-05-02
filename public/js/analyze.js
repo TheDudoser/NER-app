@@ -34,7 +34,7 @@ if (createDictBtn) {
         };
 
         // Отправляем данные на сервер
-        fetch('/save-analysis', {
+        fetch('/api/save-analysis', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

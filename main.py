@@ -6,6 +6,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi import Form
+from starlette.responses import JSONResponse
+import starlette.status as http_status_codes
+
 from src.analysis.phrase_extractor import PhraseExtractor
 from src.analysis.consts import PATTERN_COLOR
 import uvicorn
@@ -96,8 +99,8 @@ async def analyze_text(
         })
 
 
-@app.post("/save-analysis")
-async def save_analysis(request: Request):
+@app.post("/api/save-analysis")
+async def save_analysis(request: Request) -> JSONResponse:
     """Сохранение результатов анализа для последующего редактирования"""
     try:
         data = await request.json()
@@ -110,10 +113,13 @@ async def save_analysis(request: Request):
             with open(filename, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
 
-        return {"success": True, "file_id": file_hash}
+        return JSONResponse(content={"success": True, "file_id": file_hash})
     except Exception as e:
         logger.error(f"Error saving analysis: {str(e)}")
-        return {"success": False, "message": str(e)}
+        return JSONResponse(
+            status_code=http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"success": False, "message": str(e)}
+        )
 
 
 @app.get("/create-dictionary/{file_id}")
@@ -155,8 +161,8 @@ async def create_dictionary(request: Request, file_id: str):
         })
 
 
-@app.post("/save-dictionary")
-async def save_dictionary(request: Request):
+@app.post("/api/save-dictionary")
+async def save_dictionary(request: Request) -> JSONResponse:
     """Сохранение готового словаря"""
     try:
         data = await request.json()
@@ -169,14 +175,17 @@ async def save_dictionary(request: Request):
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
-        return {"success": True, "message": "Словарь сохранен"}
+        return JSONResponse(content={"success": True, "message": "Словарь сохранен"})
     except Exception as e:
         logger.error(f"Error saving dictionary: {str(e)}")
-        return {"success": False, "message": str(e)}
+        return JSONResponse(
+            status_code=http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"success": False, "message": str(e)}
+        )
 
 
-@app.patch("/update-dictionary/{file_id}")
-async def update_dictionary(request: Request, file_id: str):
+@app.patch("/api/update-dictionary/{file_id}")
+async def update_dictionary(request: Request, file_id: str) -> JSONResponse:
     try:
         data = await request.json()
         filename = f"{DICTIONARIES_DIR}/dictionary_{file_id}.json"
@@ -185,13 +194,23 @@ async def update_dictionary(request: Request, file_id: str):
             with open(filename, 'r', encoding='utf-8') as f:
                 old_data = json.load(f)
             data['createdAt'] = old_data.get('createdAt')
+        else:
+            logger.error(f"Dictionary dictionary_{file_id}.json for update not found")
+            return JSONResponse(
+                status_code=http_status_codes.HTTP_404_NOT_FOUND,
+                content={"success": False, "message": f"Dictionary dictionary_{file_id}.json for update not found"}
+            )
+
         data['updatedAt'] = datetime.now().isoformat()
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        return {"success": True, "message": "Словарь обновлён"}
+        return JSONResponse(content={"success": True, "message": "Словарь обновлён"})
     except Exception as e:
         logger.error(f"Error updating dictionary: {str(e)}")
-        return {"success": False, "message": str(e)}
+        return JSONResponse(
+            status_code=http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"success": False, "message": str(e)}
+        )
 
 
 @app.get("/dictionaries")
@@ -227,18 +246,24 @@ async def list_dictionaries(request: Request):
         })
 
 
-@app.delete("/delete-dictionary/{dictionary_id}")
-async def delete_dictionary(dictionary_id: str):
+@app.delete("/api/delete-dictionary/{dictionary_id}")
+async def delete_dictionary(dictionary_id: str) -> JSONResponse:
     """Удаление словаря"""
     try:
         filename = f"{DICTIONARIES_DIR}/dictionary_{dictionary_id}.json"
         if os.path.exists(filename):
             os.remove(filename)
-            return {"success": True, "message": "Словарь удален"}
-        return {"success": False, "message": "Файл не найден"}
+            return JSONResponse(content={"success": True, "message": "Словарь удален"})
+        return JSONResponse(
+            status_code=http_status_codes.HTTP_404_NOT_FOUND,
+            content={"success": False, "message": "Файл не найден"}
+        )
     except Exception as e:
         logger.error(f"Error deleting dictionary: {str(e)}")
-        return {"success": False, "message": str(e)}
+        return JSONResponse(
+            status_code=http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"success": False, "message": str(e)}
+        )
 
 
 @app.get("/edit-dictionary/{dictionary_id}")
