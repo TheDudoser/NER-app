@@ -14,7 +14,7 @@ from config import ANALYSIS_DIR, logger, DICTIONARIES_DIR
 api_router = APIRouter(prefix="/api", tags=["api"])
 
 
-@api_router.post("/save-analysis")
+@api_router.post("/analysis")
 async def save_analysis(request: Request) -> JSONResponse:
     """Сохранение результатов анализа для последующего редактирования"""
     try:
@@ -37,7 +37,7 @@ async def save_analysis(request: Request) -> JSONResponse:
         )
 
 
-@api_router.post("/save-dictionary")
+@api_router.post("/dictionary")
 async def save_dictionary(request: Request) -> JSONResponse:
     """Сохранение готового словаря"""
     try:
@@ -60,21 +60,21 @@ async def save_dictionary(request: Request) -> JSONResponse:
         )
 
 
-@api_router.patch("/update-dictionary/{file_id}")
-async def update_dictionary(request: Request, file_id: str) -> JSONResponse:
+@api_router.patch("/dictionary/{dictionary_id}")
+async def update_dictionary(request: Request, dictionary_id: str) -> JSONResponse:
     try:
         data = await request.json()
-        filename = f"{DICTIONARIES_DIR}/dictionary_{file_id}.json"
+        filename = f"{DICTIONARIES_DIR}/dictionary_{dictionary_id}.json"
         # Читаем старый словарь, чтобы не потерять createdAt
         if os.path.exists(filename):
             with open(filename, 'r', encoding='utf-8') as f:
                 old_data = json.load(f)
             data['createdAt'] = old_data.get('createdAt')
         else:
-            logger.error(f"Dictionary dictionary_{file_id}.json for update not found")
+            logger.error(f"Dictionary dictionary_{dictionary_id}.json for update not found")
             return JSONResponse(
                 status_code=HTTP_404_NOT_FOUND,
-                content={"success": False, "message": f"Dictionary dictionary_{file_id}.json for update not found"}
+                content={"success": False, "message": f"Dictionary dictionary_{dictionary_id}.json for update not found"}
             )
 
         data['updatedAt'] = datetime.now().isoformat()
@@ -89,7 +89,7 @@ async def update_dictionary(request: Request, file_id: str) -> JSONResponse:
         )
 
 
-@api_router.delete("/delete-dictionary/{dictionary_id}")
+@api_router.delete("/dictionary/{dictionary_id}")
 async def delete_dictionary(dictionary_id: str) -> JSONResponse:
     """Удаление словаря"""
     try:
