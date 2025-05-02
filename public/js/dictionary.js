@@ -342,6 +342,13 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log(fileId)
         return {
             fileId: fileId,
+            namedEntities: Array.from(document.getElementById('named-entities-column').children)
+                .map(el => ({
+                    id: el.dataset.id,
+                    text: el.innerText.split('\n')[0].trim(),
+                    tfidf: parseFloat(el.dataset.tfidf),
+                    type: el.dataset.type
+                })),
             terms: Array.from(document.getElementById('terms-column').children)
                 .map(el => ({
                     id: el.dataset.id,
@@ -375,6 +382,10 @@ document.addEventListener('DOMContentLoaded', function () {
         clearColumns();
 
         // Создаем карточки
+        data.namedEntities.forEach(item => {
+            document.getElementById('named-entities-column').appendChild(createPhraseCard(item));
+        });
+
         data.terms.forEach(item => {
             document.getElementById('terms-column').appendChild(createPhraseCard(item));
         });

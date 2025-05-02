@@ -48,8 +48,8 @@
         <div class="connection-container">
             <div class="row">
                 <div class="col-md-4">
-                    <h6>Термины <small class="text-muted">(основные понятия)</small></h6>
-                    <div id="terms-column" class="drop-column">
+                    <h6>Именованные сущности</h6>
+                    <div id="named-entities-column" class="drop-column">
                         {% for phrase in phrases %}
                         <div class="phrase-card draggable" draggable="true" data-id="{{ phrase.id }}"
                              data-tfidf="{{ phrase.tfidf }}" data-type="{{ phrase.pattern_type }}">
@@ -63,37 +63,54 @@
                     </div>
                 </div>
                 <div class="col-md-4">
+                    <h6>Термины</h6>
+                    <div id="terms-column" class="drop-column">
+                        {% if dictionary_data %}
+                            {% for phrase in dictionary_data.terms %}
+                                <div class="phrase-card draggable" draggable="true" data-id="{{ phrase.id }}"
+                                     data-tfidf="{{ phrase.tfidf }}" data-type="{{ phrase.pattern_type }}">
+                                    {{ phrase.phrase }}
+                                    <div class="phrase-info">
+                                        <span class="badge bg-secondary">{{ phrase.pattern_type }}</span>
+                                        <span class="badge bg-primary">{{ "%.3f"|format(phrase.tfidf) }}</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-4">
                     <div>
-                        <h6>Синонимы <small class="text-muted">(альтернативные названия)</small></h6>
+                        <h6>Синонимы</h6>
                         <div id="synonyms-column" class="drop-column">
                             {% if dictionary_data %}
-                            {% for phrase in dictionary_data.synonyms %}
-                            <div class="phrase-card draggable" draggable="true" data-id="{{ phrase.id }}"
-                                 data-tfidf="{{ phrase.tfidf }}" data-type="{{ phrase.type }}">
-                                {{ phrase.text }}
-                                <div class="phrase-info">
-                                    <span class="badge bg-secondary">{{ phrase.type }}</span>
-                                    <span class="badge bg-primary">{{ "%.3f"|format(phrase.tfidf) }}</span>
-                                </div>
-                            </div>
-                            {% endfor %}
+                                {% for phrase in dictionary_data.synonyms %}
+                                    <div class="phrase-card draggable" draggable="true" data-id="{{ phrase.id }}"
+                                         data-tfidf="{{ phrase.tfidf }}" data-type="{{ phrase.type }}">
+                                        {{ phrase.text }}
+                                        <div class="phrase-info">
+                                            <span class="badge bg-secondary">{{ phrase.type }}</span>
+                                            <span class="badge bg-primary">{{ "%.3f"|format(phrase.tfidf) }}</span>
+                                        </div>
+                                    </div>
+                                {% endfor %}
                             {% endif %}
                         </div>
                     </div>
                     <div class="mt-2">
-                        <h6>Значения <small class="text-muted">(описания терминов)</small></h6>
+                        <h6>Значения</h6>
                         <div id="definitions-column" class="drop-column">
                             {% if dictionary_data %}
-                            {% for phrase in dictionary_data.definitions %}
-                            <div class="phrase-card draggable" draggable="true" data-id="{{ phrase.id }}"
-                                 data-tfidf="{{ phrase.tfidf }}" data-type="{{ phrase.type }}">
-                                {{ phrase.text }}
-                                <div class="phrase-info">
-                                    <span class="badge bg-secondary">{{ phrase.type }}</span>
-                                    <span class="badge bg-primary">{{ "%.3f"|format(phrase.tfidf) }}</span>
-                                </div>
-                            </div>
-                            {% endfor %}
+                                {% for phrase in dictionary_data.definitions %}
+                                    <div class="phrase-card draggable" draggable="true" data-id="{{ phrase.id }}"
+                                         data-tfidf="{{ phrase.tfidf }}" data-type="{{ phrase.type }}">
+                                        {{ phrase.text }}
+                                        <div class="phrase-info">
+                                            <span class="badge bg-secondary">{{ phrase.type }}</span>
+                                            <span class="badge bg-primary">{{ "%.3f"|format(phrase.tfidf) }}</span>
+                                        </div>
+                                    </div>
+                                {% endfor %}
                             {% endif %}
                         </div>
                     </div>
