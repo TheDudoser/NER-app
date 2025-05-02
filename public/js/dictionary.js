@@ -480,7 +480,7 @@ document.addEventListener('DOMContentLoaded', function () {
         dictionary.name = dictionaryName;
 
         if (dictionary.fileId !== undefined) {
-            fetch(`/update-dictionary/${dictionary.fileId}`, {
+            fetch(`/api/update-dictionary/${dictionary.fileId}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -500,7 +500,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     alert('Произошла ошибка');
                 });
         } else {
-            fetch(`/save-dictionary`, {
+            fetch(`/api/save-dictionary`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -509,6 +509,7 @@ document.addEventListener('DOMContentLoaded', function () {
             })
                 .then(response => response.json())
                 .then(data => {
+                    console.log(data)
                     if (data.success) {
                         alert('Словарь успешно сохранен');
                     } else {
