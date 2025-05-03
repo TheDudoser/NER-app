@@ -9,20 +9,24 @@ morph = MorphAnalyzer()
 
 
 def lemma_analyzer(text: str, max_n: int) -> List[str]:
-    # 1) распознавать буквы (любые кириллические/латинские) и дефисы
-    tokens = re.findall(r"[A-Za-zА-Яа-яёЁ]+(?:-[A-Za-zА-Яа-яёЁ]+)*|[^\w\s]", text, flags=re.UNICODE)
+    tokens = re.findall(
+        r"[A-Za-zА-Яа-яёЁ]{2,}(?:-[A-Za-zА-Яа-яёЁ]{2,})*|[^\w\s]",
+        text,
+        flags=re.UNICODE
+    )
     ngrams: List[str] = []
     for n in range(1, max_n + 1):
         for i in range(len(tokens) - n + 1):
             window = tokens[i:i + n]
-            # 2) допустить внутри токена '-' и буквы по обе стороны
+            # допускаем только “слова” с буквами и дефисами
             if all(re.fullmatch(r"[A-Za-zА-Яа-яёЁ-]+", tok) for tok in window):
                 lemmas = []
                 for tok in window:
-                    # если слово содержит дефис, лемматизируем части и склеиваем
                     if '-' in tok:
                         parts = tok.split('-')
-                        lemmas.append('-'.join(morph.parse(p)[0].normal_form for p in parts))
+                        lemmas.append(
+                            '-'.join(morph.parse(p)[0].normal_form for p in parts)
+                        )
                     else:
                         lemmas.append(morph.parse(tok)[0].normal_form)
                 ngrams.append(' '.join(lemmas))
