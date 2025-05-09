@@ -171,7 +171,8 @@ async def edit_dictionary(request: Request, dictionary_id: str) -> HTMLResponse:
             "dictionary_name": dictionary_data.get('name', ''),
             "dictionary_data": dictionary_data,
             "file_id": dictionary_id,
-            "is_edit_mode": True
+            "is_edit_mode": True,
+            "tfidfRange": dictionary_data['ifidfRange']
         })
     except Exception as e:
         logger.error(f"Error loading dictionary: {e}")
