@@ -69,8 +69,8 @@
         <div class="connection-container">
             <div class="row">
                 <div class="col-md-4">
-                    <h6>Именованные сущности</h6>
-                    <div id="named-entities-column" class="drop-column">
+                    <h6>Ключевые фразы</h6>
+                    <div id="phrases-column" class="drop-column">
                         {% for phrase in phrases %}
                         <div class="phrase-card draggable" draggable="true" data-id="{{ phrase.id }}"
                              data-tfidf="{{ phrase.tfidf }}" data-type="{{ phrase.pattern_type }}">

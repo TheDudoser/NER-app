@@ -345,7 +345,7 @@ document.addEventListener('DOMContentLoaded', function () {
         let fileId = document.getElementById('file_id')?.textContent;
         return {
             fileId: fileId,
-            namedEntities: Array.from(document.getElementById('named-entities-column').children)
+            phrases: Array.from(document.getElementById('phrases-column').children)
                 .map(el => ({
                     id: el.dataset.id,
                     text: el.textContent.split('\n')[1].trim(),
@@ -390,8 +390,8 @@ document.addEventListener('DOMContentLoaded', function () {
         clearColumns();
 
         // Создаем карточки
-        data.namedEntities.forEach(item => {
-            document.getElementById('named-entities-column').appendChild(createPhraseCard(item));
+        data.phrases.forEach(item => {
+            document.getElementById('phrases-column').appendChild(createPhraseCard(item));
         });
 
         data.terms.forEach(item => {
