@@ -381,7 +381,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 from: conn.from,
                 to: conn.to
             })),
-            ifidfRange: parseFloat(number.value)
+            tfidfRange: parseFloat(number.value)
         };
     }
 
@@ -419,9 +419,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // Обновляем фильтр по tf-idf
-        number.value = data.ifidfRange;
-        range.value = data.ifidfRange;
-        applyTfidfFilter(data.ifidfRange);
+        number.value = data.tfidfRange;
+        range.value = data.tfidfRange;
+        applyTfidfFilter(data.tfidfRange);
     }
 
     // Функция для создания карточки фразы

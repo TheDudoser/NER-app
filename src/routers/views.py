@@ -33,10 +33,12 @@ async def analyze_text(
         file: UploadFile = File(None)
 ) -> HTMLResponse:
     """Обработка и отображение заданного для анализа текста"""
-    if not text and not file:
+    if not text and not file.filename:
+        logger.warning(msg="Text or file is empty")
         return templates.TemplateResponse("index.html", {
             "request": request,
             "pattern_with_colors": PATTERN_COLOR,
+            "error": "Был введён пустой текст или не выбран файл"
         })
 
     content = text or ""
@@ -45,11 +47,11 @@ async def analyze_text(
             file_content = (await file.read()).decode("utf-8")
             content = f"{content}\n{file_content}" if content else file_content
         except Exception as e:
-            logger.error(f"Error reading file: {str(e)}")
+            logger.error(msg=f"Error reading file: {str(e)}", exc_info=True)
             return templates.TemplateResponse("index.html", {
                 "request": request,
                 "pattern_with_colors": PATTERN_COLOR,
-                "error": f"Ошибка чтения файла: {str(e)}"
+                "error": "Произошла ошибка при чтении файла"
             })
 
     try:
@@ -66,11 +68,11 @@ async def analyze_text(
         })
 
     except Exception as e:
-        logger.error(f"Analysis error: {str(e)}")
+        logger.error(msg=f"Analysis error {str(e)}", exc_info=True)
         return templates.TemplateResponse("index.html", {
             "request": request,
             "pattern_with_colors": PATTERN_COLOR,
-            "error": f"Ошибка при анализе текста: {str(e)}"
+            "error": "Произошла неизвестная ошибка при анализе текста"
         })
 
 
@@ -106,10 +108,10 @@ async def create_dictionary(request: Request, analysis_file_id: str) -> HTMLResp
             "file_id": analysis_file_id
         })
     except Exception as e:
-        logger.error(f"Error loading analysis: {str(e)}")
+        logger.error(msg=f"Error loading analysis: {str(e)}", exc_info=True)
         return templates.TemplateResponse("error.html", {
             "request": request,
-            "error": f"Ошибка загрузки анализа: {str(e)}"
+            "error": "Произошла ошибка при загрузке файла с результатом анализа"
         })
 
 
@@ -139,10 +141,10 @@ async def list_dictionaries(request: Request) -> HTMLResponse:
             "dictionaries": dictionaries
         })
     except Exception as e:
-        logger.error(f"Error listing dictionaries: {str(e)}")
+        logger.error(msg=f"Error listing dictionaries: {str(e)}", exc_info=True)
         return templates.TemplateResponse("error.html", {
             "request": request,
-            "error": f"Ошибка при загрузке списка словарей: {str(e)}"
+            "error": "Произошла ошибка при загрузке списка словарей"
         })
 
 
@@ -172,13 +174,13 @@ async def edit_dictionary(request: Request, dictionary_id: str) -> HTMLResponse:
             "dictionary_data": dictionary_data,
             "file_id": dictionary_id,
             "is_edit_mode": True,
-            "tfidfRange": dictionary_data['ifidfRange']
+            "tfidfRange": dictionary_data['tfidfRange']
         })
     except Exception as e:
-        logger.error(f"Error loading dictionary: {e}")
+        logger.error(msg=f"Error loading dictionary: {str(e)}", exc_info=True)
         return templates.TemplateResponse("error.html", {
             "request": request,
-            "error": f"Ошибка загрузки словаря: {e}"
+            "error": f"Произошла ошибка при загрузке словаря"
         })
 
 
