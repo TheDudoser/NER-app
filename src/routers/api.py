@@ -30,7 +30,7 @@ async def save_analysis(request: Request) -> JSONResponse:
 
         return JSONResponse(content={"success": True, "file_id": file_hash})
     except Exception as e:
-        logger.error(f"Error saving analysis: {str(e)}")
+        logger.error(msg=f"Error saving analysis: {str(e)}", exc_info=True)
         return JSONResponse(
             status_code=HTTP_500_INTERNAL_SERVER_ERROR,
             content={"success": False, "message": str(e)}
@@ -52,7 +52,7 @@ async def save_dictionary(request: Request) -> JSONResponse:
 
         return JSONResponse(content={"success": True, "message": "Словарь сохранен"})
     except Exception as e:
-        logger.error(f"Error saving dictionary: {str(e)}")
+        logger.error(msg=f"Error saving dictionary: {str(e)}", exc_info=True)
         return JSONResponse(
             status_code=HTTP_500_INTERNAL_SERVER_ERROR,
             content={"success": False, "message": str(e)}
@@ -71,10 +71,13 @@ async def update_dictionary(request: Request, dictionary_id: str) -> JSONRespons
                 old_data = json.load(f)
             data['createdAt'] = old_data.get('createdAt')
         else:
-            logger.error(f"Dictionary dictionary_{dictionary_id}.json for update not found")
+            logger.error(msg=f"Dictionary dictionary_{dictionary_id}.json for update not found")
             return JSONResponse(
                 status_code=HTTP_404_NOT_FOUND,
-                content={"success": False, "message": f"Dictionary dictionary_{dictionary_id}.json for update not found"}
+                content={
+                    "success": False,
+                    "message": f"Dictionary dictionary_{dictionary_id}.json for update not found"
+                }
             )
 
         data['updatedAt'] = datetime.now().isoformat()
@@ -82,7 +85,7 @@ async def update_dictionary(request: Request, dictionary_id: str) -> JSONRespons
             json.dump(data, f, ensure_ascii=False, indent=2)
         return JSONResponse(content={"success": True, "message": "Словарь обновлён"})
     except Exception as e:
-        logger.error(f"Error updating dictionary: {str(e)}")
+        logger.error(msg=f"Error updating dictionary: {str(e)}", exc_info=True)
         return JSONResponse(
             status_code=HTTP_500_INTERNAL_SERVER_ERROR,
             content={"success": False, "message": str(e)}
@@ -101,7 +104,7 @@ async def delete_dictionary(dictionary_id: str) -> JSONResponse:
             content={"success": False, "message": "Файл не найден"}
         )
     except Exception as e:
-        logger.error(f"Error deleting dictionary: {str(e)}")
+        logger.error(msg=f"Error deleting dictionary: {str(e)}", exc_info=True)
         return JSONResponse(
             status_code=HTTP_500_INTERNAL_SERVER_ERROR,
             content={"success": False, "message": str(e)}
