@@ -1,16 +1,12 @@
-SHELL := /bin/bash
+.PHONY: init
 
-PYTHON = python3
-PIP = pip3
+DOCKER_COMPOSE=docker compose
+PYTHON_SERVICE=backend
 
-init: create_venv install
+init: .env
 
-create_venv:
-	@$(PYTHON) -m venv .venv
-	source .venv/bin/activate
-
-install:
-	@$(PIP) install -r requirements.txt
+.env:
+	@cp .env.dist .env
 
 freeze:
-	@$(PYTHON) -m pip freeze > requirements.txt
+	@$(DOCKER_COMPOSE) exec $(PYTHON_SERVICE) pip freeze > requirements.txt
