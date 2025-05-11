@@ -1,10 +1,29 @@
 services:
-  app:
+  backend:
     build: .
     ports:
       - "80:8000"
     volumes:
-      - .:/app:delegated
+      - type: bind
+        source: ./
+        target: /app
     environment:
       - PYTHONUNBUFFERED=1
     restart: always
+
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    env_file:
+      - .env
+    volumes:
+      - .:/docker-entrypoint-initdb.d
+      - postgres-data:/var/lib/postgresql/data:delegated
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres-data: {}
