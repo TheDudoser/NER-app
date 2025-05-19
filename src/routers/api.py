@@ -117,29 +117,74 @@ async def save_dictionary(dict_dto: DictionaryDTO, db: Session = Depends(get_ses
 
 
 @api_router.patch("/dictionary/{dictionary_id}")
-async def update_dictionary(request: Request, dictionary_id: str) -> JSONResponse:
+async def update_dictionary(dict_dto: DictionaryDTO, dictionary_id: int,
+                            db: Session = Depends(get_session)) -> JSONResponse:
     try:
-        data = await request.json()
-        filename = f"{DICTIONARIES_DIR}/dictionary_{dictionary_id}.json"
+        with db.begin():
+            # 1) Находим словарь
+            dict_obj = db.get(Dictionary, dictionary_id)
+            if not dict_obj:
+                return JSONResponse(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    content={"success": False, "message": "Словарь не найден"}
+                )
 
-        # Читаем старый словарь, чтобы не потерять createdAt
-        if os.path.exists(filename):
-            with open(filename, 'r', encoding='utf-8') as f:
-                old_data = json.load(f)
-            data['createdAt'] = old_data.get('createdAt')
-        else:
-            logger.error(msg=f"Dictionary dictionary_{dictionary_id}.json for update not found")
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content={
-                    "success": False,
-                    "message": f"Dictionary dictionary_{dictionary_id}.json for update not found"
-                }
-            )
+            # Удаляем все связи словаря
+            db.exec(delete(Connection).where(Connection.dictionary_id == dict_obj.id))
 
-        data['updatedAt'] = datetime.now().isoformat()
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+            # Удаляем все термины словаря
+            db.exec(delete(Term).where(Term.dictionary_id == dict_obj.id))
+
+            # 2) Создаём термины и связи
+            phrase_types = {
+                "phrases": PhraseType.phrase,
+                "terms": PhraseType.term,
+                "synonyms": PhraseType.synonym,
+                "definitions": PhraseType.definition
+            }
+
+            old_id_to_new_id = {}  # {"старый_id": "новый_id_из_БД"}
+
+            for key, phrase_type in phrase_types.items():
+                term_list = getattr(dict_dto, key, [])  # Получаем список терминов по атрибуту
+
+                for term_dto in term_list:
+                    old_id = term_dto.id
+                    t = Term(
+                        dictionary_id=dict_obj.id,
+                        phrase_type=phrase_type,
+                        text=term_dto.text,
+                        type=term_dto.type,
+                        tfidf=term_dto.tfidf,
+                        hidden=term_dto.hidden
+                    )
+                    db.add(t)
+                    db.flush()
+
+                    if old_id is not None:
+                        old_id_to_new_id[old_id] = t.id
+
+            # Шаг 2: Создаем связи
+            for conn in dict_dto.connections:
+                from_id = old_id_to_new_id.get(conn.from_id)
+                to_id = old_id_to_new_id.get(conn.to_id)
+
+                if not from_id or not to_id:
+                    return JSONResponse(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        content={
+                            "success": False,
+                            "message": f"Неверные ID связей: from={conn.from_id}, to={conn.to_id}"
+                        }
+                    )
+
+                c = Connection(
+                    dictionary_id=dict_obj.id,
+                    from_term_id=from_id,
+                    to_term_id=to_id,
+                )
+                db.add(c)
+
         return JSONResponse(content={"success": True, "message": "Словарь обновлён"})
     except Exception as e:
         logger.error(msg=f"Error updating dictionary: {str(e)}", exc_info=True)
@@ -152,36 +197,28 @@ async def update_dictionary(request: Request, dictionary_id: str) -> JSONRespons
 @api_router.delete("/dictionary/{dictionary_id}", name="delete_dictionary")
 async def delete_dictionary(dictionary_id: int, db: Session = Depends(get_session)) -> JSONResponse:
     try:
-        try:
-            # Начинаем транзакцию
-            with db.begin():
-                # 1) Находим словарь
-                dict_obj = db.get(Dictionary, dictionary_id)
-                if not dict_obj:
-                    return JSONResponse(
-                        status_code=status.HTTP_404_NOT_FOUND,
-                        content={"success": False, "message": "Словарь не найден"}
-                    )
+        with db.begin():
+            # 1) Находим словарь
+            dict_obj = db.get(Dictionary, dictionary_id)
+            if not dict_obj:
+                return JSONResponse(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    content={"success": False, "message": "Словарь не найден"}
+                )
 
-                # 2) Удаляем все связи словаря
-                db.exec(delete(Connection).where(Connection.dictionary_id == dictionary_id))
+            # 2) Удаляем все связи словаря
+            db.exec(delete(Connection).where(Connection.dictionary_id == dictionary_id))
 
-                # 3) Удаляем все термины словаря
-                db.exec(delete(Term).where(Term.dictionary_id == dictionary_id))
+            # 3) Удаляем все термины словаря
+            db.exec(delete(Term).where(Term.dictionary_id == dictionary_id))
 
-                # 4) Удаляем сам словарь
-                db.delete(dict_obj)
-        except Exception as e:
-            logger.error(f"Error while deleted dict: {str(e)}", exc_info=True)
-            return JSONResponse(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                content={"success": False, "message": "Ошибка удаления словаря"}
-            )
+            # 4) Удаляем сам словарь
+            db.delete(dict_obj)
 
         return JSONResponse(content={"success": True, "message": "Словарь удален"})
     except Exception as e:
         logger.error(msg=f"Error deleting dictionary: {str(e)}", exc_info=True)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"success": False, "message": str(e)}
+            content={"success": False, "message": "Произошла ошибка во время удаления словаря"}
         )
