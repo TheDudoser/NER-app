@@ -49,7 +49,7 @@ async def save_dictionary(dict_dto: DictionaryDTO, db: Session = Depends(get_ses
     try:
         with db.begin():
             # 1) Создаём запись словаря
-            dict_obj = Dictionary(name=dict_dto.name, tfidf_range=dict_dto.tfidfRange)
+            dict_obj = Dictionary(name=dict_dto.name, tfidf_range=dict_dto.tfidf_range)
             db.add(dict_obj)
             db.flush()
 
@@ -185,7 +185,7 @@ async def get_all_dicts(db: Session = Depends(get_session)) -> JSONResponse:
             DictionaryShortDTO(
                 id=dict_dto.id,
                 name=dict_dto.name,
-                created_at=dict_dto.created_at.timestamp(),
+                created_at=dict_dto.created_at_local.timestamp(),
                 terms_count=len(dict_dto.terms),
                 connections_count=len(dict_dto.connections)
             )

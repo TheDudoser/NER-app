@@ -131,7 +131,7 @@ async def list_dictionaries(request: Request, db: Session = Depends(get_session)
             dictionaries_data.append({
                 'id': dictionary.id,
                 'name': dictionary.name,
-                'created_at': dictionary.created_at.timestamp(),
+                'created_at': dictionary.created_at_local,
                 'terms_count': len(dictionary.terms),
                 'connections_count': len(dictionary.connections)
             })
@@ -184,15 +184,15 @@ async def edit_dictionary(request: Request, dictionary_id: int, db: Session = De
             'synonyms': [t for t in dict_terms if t['phrase_type'] == PhraseType.synonym],
             'definitions': [t for t in dict_terms if t['phrase_type'] == PhraseType.definition],
             'connections': connections,
-            'tfidfRange': dictionary.tfidf_range
+            'tfidf_range': dictionary.tfidf_range
         }
-        # print(dictionary_data)
+
         return templates.TemplateResponse("dictionary.html.jinja", {
             "request": request,
             "dictionary": dictionary,
             "dictionary_data": dictionary_data,
             "is_edit_mode": True,
-            "tfidfRange": dictionary.tfidf_range
+            "tfidf_range": dictionary.tfidf_range
         })
     except Exception as e:
         logger.error(msg=f"Error loading dictionary: {str(e)}", exc_info=True)
