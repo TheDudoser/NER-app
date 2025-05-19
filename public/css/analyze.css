@@ -64,3 +64,42 @@
 .loading-spinner {
     display: none;
 }
+
+/* Карточки */
+.card {
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    border: none;
+}
+
+/* Кнопки */
+.btn-primary, .btn-outline-primary {
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.btn-outline-secondary {
+    border-radius: 8px;
+}
+
+/* Текстовое поле */
+textarea.form-control {
+    border-radius: 10px;
+    font-size: 1.05rem;
+    background: #f8fafc;
+    border: 1.5px solid #e0e7ff;
+    min-height: 160px;
+    transition: border-color 0.2s;
+}
+
+textarea.form-control:focus {
+    border-color: #6366f1;
+    background: #fff;
+    box-shadow: 0 0 0 2px #e0e7ff;
+}
+
+/* Файл */
+.form-control[type="file"] {
+    border-radius: 8px;
+    background: #f8fafc;
+}

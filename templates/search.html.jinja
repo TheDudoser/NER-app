@@ -1,0 +1,84 @@
+{% extends "base.html.jinja" %}
+
+{% block head %}
+    {{ super() }}
+    <link href="/public/css/search.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card search-card">
+                    <div class="card-body">
+                        <h4 class="card-title mb-3">🔍 Поиск в словарях</h4>
+
+                        <form action="/search" method="get">
+                            <div class="mb-3">
+                                <input type="text" id="searchTopic" name="topic" class="form-control"
+                                       placeholder="Введите тематику для поиска" required>
+                            </div>
+                            <div class="mb-3">
+                                <input type="text" id="searchQuery" name="query" class="form-control"
+                                       placeholder="Введите слово или фразу для поиска" required>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary search-btn w-100">
+                                Найти
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Блок результатов -->
+        {% if search_results %}
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <h4 class="mb-3">Результаты поиска</h4>
+
+                    {% for dictionary in search_results %}
+                        <div class="card result-card">
+                            <div class="card-body">
+                                <h5 class="text-primary mb-3">
+                                    {{ dictionary.name }}
+                                    <small class="text-muted">(Точность: {{ dictionary.tfidf_range }})</small>
+                                </h5>
+
+                                <div class="mb-3">
+                                    <h6>Найденные совпадения:</h6>
+                                    {% for match in dictionary.matches %}
+                                        <div class="match-item d-flex justify-content-between">
+                                            <div>{{ match.sentence }}</div>
+                                            <span class="accuracy-badge">{{ match.accuracy|round(2) }}</span>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+
+                                <div class="bg-light p-3 rounded">
+                                    <div class="mb-2">
+                                        <strong>Синонимы:</strong>
+                                        {{ dictionary.term.synonyms|join(", ") }}
+                                    </div>
+                                    <div>
+                                        <strong>Определения:</strong>
+                                        <ol class="mb-0">
+                                            {% for definition in dictionary.term.definitions %}
+                                                <li>{{ definition }}</li>
+                                            {% endfor %}
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block javascript %}
+    {{ super() }}
+{% endblock %}

@@ -173,6 +173,5 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-# Файлы с результатами анализа и словарями
+# Файлы с результатами анализа
 analysis/*
-dictionaries/*

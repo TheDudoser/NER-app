@@ -1,0 +1,29 @@
+{% block navbar %}
+    <nav class="navbar navbar-expand-lg navbar-light mb-4">
+        <div class="container-fluid">
+            {% set url_main = url_for('empty_analyze_text') %}
+            <a class="navbar-brand" href="{{ url_main }}">Сервис разметки текстовых документов</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Переключить навигацию">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link{% if request.url.path == url_main.path %} active{% endif %}" href={{ url_main }}>Главная</a>
+                    </li>
+                    <li class="nav-item">
+                        {% set url_list_dictionaries = url_for('list_dictionaries') %}
+                        <a class="nav-link{% if request.url.path == url_list_dictionaries.path %} active{% endif %}"
+                           href="{{ url_list_dictionaries }}">Словари</a>
+                    </li>
+                    <li class="nav-item">
+                        {% set url_search = url_for('search') %}
+                        <a class="nav-link{% if request.url.path.startswith(url_search.path) %} active{% endif %}"
+                           href="{{ url_search }}">Поиск</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+{% endblock %}

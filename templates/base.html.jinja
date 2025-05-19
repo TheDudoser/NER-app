@@ -11,13 +11,14 @@
 </head>
 <body>
     <div class="container py-4">
-        {% include "components/navbar.html" %}
+        {% include "components/navbar.html.jinja" %}
 
         {% block content %}
         {% endblock %}
     </div>
 
     {% block javascript %}
+        <script src="/public/js/bootstrap.min.js"></script>
     {% endblock %}
 </body>
 </html>

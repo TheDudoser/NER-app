@@ -1,0 +1,116 @@
+{% extends "base.html.jinja" %}
+
+{% block head %}
+    {{ super() }}
+    <link href="/public/css/dictionary.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="card-title mb-0">
+                        {% if dictionary is defined and dictionary.name %}
+                            Редактирование словаря: <span class="text-primary">{{ dictionary.name }}</span>
+                        {% else %}
+                            Создание нового словаря
+                        {% endif %}
+                    </h5>
+                </div>
+                {% if is_edit_mode %}
+                    <div id="file_id" hidden="hidden">{{ dictionary.id }}</div>
+                {% endif %}
+                <div>
+                    <button class="btn btn-outline-danger" id="clearConnectionsBtn">
+                        <i class="bi bi-link-45deg"></i> Очистить все связи
+                    </button>
+                    <button class="btn btn-primary" id="exportDictionaryBtn">
+                        <i class="bi bi-save"></i> Сохранить
+                    </button>
+                </div>
+            </div>
+
+            <div class="alert alert-info mb-3 d-flex align-items-center">
+                <i class="bi bi-info-circle me-2"></i>
+                <span>
+                    Перетащите фразы между колонками. Для создания связей используйте кнопку
+                    <svg viewBox="0 0 16 16" width="16px" height="16px" fill="currentColor" style="vertical-align: middle;">
+                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"></path>
+                        <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"></path>
+                    </svg>
+                    на карточке.
+                </span>
+            </div>
+
+            <div class="mb-3">
+                <label for="dictionaryName" class="form-label">Название словаря:</label>
+                <input type="text" class="form-control" id="dictionaryName"
+                       placeholder="Введите название" value="{{ dictionary is defined and dictionary.name or '' }}">
+            </div>
+
+            <div class="d-flex align-items-center mb-3 flex-wrap">
+                <label for="tfidfRange" class="form-label me-3 mb-0">Порог TF-IDF:</label>
+                <input type="range"
+                       class="form-range me-3"
+                       style="min-width: 100px; max-width: 300px;"
+                       id="tfidfRange"
+                       min="0" max="1"
+                       step="0.001"
+                       value="{{ tfidfRange or 0 }}"
+                />
+                <input type="number"
+                       id="tfidfValue"
+                       class="form-control"
+                       style="width: 5.5rem;"
+                       min="0" max="1"
+                       step="0.001"
+                       value="{{ tfidfRange or 0 }}"
+                />
+            </div>
+
+            <div class="connection-container">
+                <div class="row">
+                    {% import 'components/phrase_list.html.jinja' as phrase_list %}
+                    <div class="col-md-4">
+                        {{ phrase_list.get(
+                            name_list="Ключевые фразы",
+                            phrases=dictionary_data.phrases if dictionary is defined else phrases,
+                            style_id="phrases-column",
+                            show_subname=true) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ phrase_list.get(
+                            name_list="Термины",
+                            phrases=dictionary_data.terms if dictionary is defined else [],
+                            style_id="terms-column") }}
+                    </div>
+                    <div class="col-md-4">
+                        <div>
+                            {{ phrase_list.get(
+                                name_list="Синонимы",
+                                phrases=dictionary_data.synonyms if dictionary is defined else [],
+                                style_id="synonyms-column") }}
+                        </div>
+                        <div class="mt-2">
+                            {{ phrase_list.get(
+                                name_list="Значения",
+                                phrases=dictionary_data.definitions if dictionary is defined else [],
+                                style_id="definitions-column") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block javascript %}
+    {{ super() }}
+    <script src="/public/js/dictionary.js"></script>
+    <script>
+        {% if dictionary_data %}
+            window.DICTIONARY_DATA = {{ dictionary_data|tojson }};
+        {% endif %}
+    </script>
+{% endblock %}

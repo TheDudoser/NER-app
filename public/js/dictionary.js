@@ -387,24 +387,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Функция для загрузки данных словаря
     function loadDictionaryData(data) {
-        clearColumns();
-
-        // Создаем карточки
-        data.phrases.forEach(item => {
-            document.getElementById('phrases-column').appendChild(createPhraseCard(item));
-        });
-
-        data.terms.forEach(item => {
-            document.getElementById('terms-column').appendChild(createPhraseCard(item));
-        });
-
-        data.synonyms.forEach(item => {
-            document.getElementById('synonyms-column').appendChild(createPhraseCard(item));
-        });
-
-        data.definitions.forEach(item => {
-            document.getElementById('definitions-column').appendChild(createPhraseCard(item));
-        });
+        // clearColumns();
+        //
+        // // Создаем карточки
+        // data.phrases.forEach(item => {
+        //     document.getElementById('phrases-column').appendChild(createPhraseCard(item));
+        // });
+        //
+        // data.terms.forEach(item => {
+        //     document.getElementById('terms-column').appendChild(createPhraseCard(item));
+        // });
+        //
+        // data.synonyms.forEach(item => {
+        //     document.getElementById('synonyms-column').appendChild(createPhraseCard(item));
+        // });
+        //
+        // data.definitions.forEach(item => {
+        //     document.getElementById('definitions-column').appendChild(createPhraseCard(item));
+        // });
 
         // Восстанавливаем соединения
         if (data.connections) {
@@ -512,6 +512,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     console.log(data)
                     if (data.success) {
                         alert('Словарь успешно сохранен');
+                        window.location.href = `/dictionary/${data.dictionary_id}/edit`;
                     } else {
                         alert('Ошибка при сохранении словаря: ' + data.message);
                     }
