@@ -5,8 +5,9 @@ from typing import List, Optional
 @dataclass
 class TermDTO:
     text: str
-    # На самом деле type - PhraseType, но с enum возникли трудности...
     type: str
+    # На самом деле PhraseType, но с enum возникли трудности...
+    phrase_type: str
     tfidf: float
     hidden: bool = False
     id: Optional[int] = None
@@ -23,9 +24,6 @@ class DictionaryDTO:
     name: str
     tfidfRange: float
     phrases: List[TermDTO]
-    terms: List[TermDTO]
-    synonyms: List[TermDTO]
-    definitions: List[TermDTO]
     connections: List[ConnectionDTO]
     fileId: Optional[int] = None
 

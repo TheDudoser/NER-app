@@ -343,40 +343,30 @@ document.addEventListener('DOMContentLoaded', function () {
     // Функция для получения данных словаря
     function getDictionaryData() {
         let fileId = document.getElementById('file_id')?.textContent;
+
+        // Общая функция для обработки элементов колонок
+        const processColumn = (elementId, phraseType) =>
+            Array.from(document.getElementById(elementId).children)
+                .map(el => ({
+                    id: el.dataset.id,
+                    text: el.textContent.split('\n')[1].trim(),
+                    tfidf: parseFloat(el.dataset.tfidf),
+                    type: el.dataset.type,
+                    hidden: el.dataset.hidden === 'true',
+                    phrase_type: phraseType
+                }));
+
+        // Собираем все элементы в один массив
+        const allItems = [
+            ...processColumn('phrases-column', 'phrase'),
+            ...processColumn('terms-column', 'term'),
+            ...processColumn('synonyms-column', 'synonym'),
+            ...processColumn('definitions-column', 'definition')
+        ];
+
         return {
             fileId: fileId,
-            phrases: Array.from(document.getElementById('phrases-column').children)
-                .map(el => ({
-                    id: el.dataset.id,
-                    text: el.textContent.split('\n')[1].trim(),
-                    tfidf: parseFloat(el.dataset.tfidf),
-                    type: el.dataset.type,
-                    hidden: el.dataset.hidden === 'true'
-                })),
-            terms: Array.from(document.getElementById('terms-column').children)
-                .map(el => ({
-                    id: el.dataset.id,
-                    text: el.textContent.split('\n')[1].trim(),
-                    tfidf: parseFloat(el.dataset.tfidf),
-                    type: el.dataset.type,
-                    hidden: el.dataset.hidden === 'true'
-                })),
-            synonyms: Array.from(document.getElementById('synonyms-column').children)
-                .map(el => ({
-                    id: el.dataset.id,
-                    text: el.textContent.split('\n')[1].trim(),
-                    tfidf: parseFloat(el.dataset.tfidf),
-                    type: el.dataset.type,
-                    hidden: el.dataset.hidden === 'true'
-                })),
-            definitions: Array.from(document.getElementById('definitions-column').children)
-                .map(el => ({
-                    id: el.dataset.id,
-                    text: el.textContent.split('\n')[1].trim(),
-                    tfidf: parseFloat(el.dataset.tfidf),
-                    type: el.dataset.type,
-                    hidden: el.dataset.hidden === 'true'
-                })),
+            phrases: allItems,
             connections: connectionLines.map(conn => ({
                 from_id: conn.from,
                 to_id: conn.to

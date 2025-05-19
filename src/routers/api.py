@@ -103,34 +103,23 @@ async def update_dictionary(dict_dto: DictionaryDTO, dictionary_id: int,
 
 def _process_terms_and_connections(dict_dto: DictionaryDTO, dictionary_id: int, db: Session) -> Optional[JSONResponse]:
     """Общая функция для обработки терминов и связей словаря."""
-    phrase_types = {
-        "phrases": PhraseType.phrase,
-        "terms": PhraseType.term,
-        "synonyms": PhraseType.synonym,
-        "definitions": PhraseType.definition
-    }
-
     old_id_to_new_id = {}  # {"старый_id": "новый_id_из_БД"}
 
-    # Шаг 1: Создаем все термины
-    for key, phrase_type in phrase_types.items():
-        term_list = getattr(dict_dto, key, [])  # Получаем список терминов по атрибуту
+    for term_dto in dict_dto.phrases:
+        old_id = term_dto.id
+        t = Term(
+            dictionary_id=dictionary_id,
+            phrase_type=term_dto.phrase_type,
+            text=term_dto.text,
+            type=term_dto.type,
+            tfidf=term_dto.tfidf,
+            hidden=term_dto.hidden
+        )
+        db.add(t)
+        db.flush()
 
-        for term_dto in term_list:
-            old_id = term_dto.id
-            t = Term(
-                dictionary_id=dictionary_id,
-                phrase_type=phrase_type,
-                text=term_dto.text,
-                type=term_dto.type,
-                tfidf=term_dto.tfidf,
-                hidden=term_dto.hidden
-            )
-            db.add(t)
-            db.flush()
-
-            if old_id is not None:
-                old_id_to_new_id[old_id] = t.id
+        if old_id is not None:
+            old_id_to_new_id[old_id] = t.id
 
     # Шаг 2: Создаем связи
     for conn in dict_dto.connections:
@@ -244,32 +233,25 @@ async def merge_dictionaries(
                 for t in existing_terms
             }
             old_id_to_new_id = {}
-            phrase_types = {
-                "phrases": PhraseType.phrase,
-                "terms": PhraseType.term,
-                "synonyms": PhraseType.synonym,
-                "definitions": PhraseType.definition
-            }
-            for key, phrase_type in phrase_types.items():
-                term_list = getattr(source_dict_data, key, [])
-                for term_dto in term_list:
-                    term_key = (term_dto.text, term_dto.type, phrase_type)
-                    if term_key in term_index:
-                        old_id_to_new_id[term_dto.id] = term_index[term_key]
-                    else:
-                        t = Term(
-                            dictionary_id=target_dict_id,
-                            phrase_type=phrase_type,
-                            text=term_dto.text,
-                            type=term_dto.type,
-                            tfidf=term_dto.tfidf,
-                            hidden=term_dto.hidden
-                        )
-                        db.add(t)
-                        db.flush()
-                        term_index[term_key] = t.id
-                        if term_dto.id is not None:
-                            old_id_to_new_id[term_dto.id] = t.id
+
+            for term_dto in source_dict_data.phrases:
+                term_key = (term_dto.text, term_dto.type, PhraseType.from_value(term_dto.phrase_type))
+                if term_key in term_index:
+                    old_id_to_new_id[term_dto.id] = term_index[term_key]
+                else:
+                    t = Term(
+                        dictionary_id=target_dict_id,
+                        phrase_type=term_dto.phrase_type,
+                        text=term_dto.text,
+                        type=term_dto.type,
+                        tfidf=term_dto.tfidf,
+                        hidden=term_dto.hidden
+                    )
+                    db.add(t)
+                    db.flush()
+                    term_index[term_key] = t.id
+                    if term_dto.id is not None:
+                        old_id_to_new_id[term_dto.id] = t.id
 
             for conn in source_dict_data.connections:
                 from_id = old_id_to_new_id.get(conn.from_id)
