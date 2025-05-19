@@ -100,3 +100,48 @@
 .connection-line:hover .delete-connection {
     opacity: 1;
 }
+
+.card {
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    border: none;
+}
+
+.alert-info {
+    border-radius: 8px;
+    background: #f8fafc;
+    border: none;
+    font-size: 1rem;
+}
+
+.form-control, .form-range {
+    border-radius: 8px;
+}
+
+#tfidfValue {
+    font-size: 1rem;
+}
+
+.btn-outline-danger, .btn-primary {
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.d-flex.align-items-center.mb-3 label {
+    min-width: 110px;
+}
+
+.connection-container .col-md-4 {
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 767px) {
+    .connection-container .row {
+        flex-direction: column;
+    }
+
+    .connection-container .col-md-4 {
+        width: 100%;
+        max-width: 100%;
+    }
+}

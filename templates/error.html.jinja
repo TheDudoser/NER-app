@@ -1,0 +1,23 @@
+{% extends "base.html.jinja" %}
+
+{% block head %}
+    {{ super() }}
+    <link href="/public/css/error.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+    {% if error %}
+        <div class="error-card">
+            <div class="error-illustration" aria-hidden="true">
+                <img src="/public/img/error.svg" alt="Лупа" width="64" height="64">
+            </div>
+            <div class="error-title">Что-то пошло не так</div>
+            <div class="error-message-text">{{ error }}</div>
+            <a href="{{ url_for('empty_analyze_text') }}" class="error-home-btn">На главную</a>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block javascript %}
+    {{ super() }}
+{% endblock %}

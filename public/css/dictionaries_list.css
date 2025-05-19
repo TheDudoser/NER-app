@@ -1,0 +1,92 @@
+.dictionaries-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border: none;
+    margin-bottom: 2rem;
+    background: #fff;
+}
+
+.dictionaries-table {
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.dictionaries-table th, .dictionaries-table td {
+    padding: 16px 18px;
+    vertical-align: middle;
+}
+
+.dictionaries-table thead {
+    background: #f8fafc;
+}
+
+.dictionaries-table tbody tr {
+    transition: background 0.15s;
+}
+
+.dictionaries-table tbody tr:hover {
+    background: #f3f6fa;
+}
+
+.dictionaries-table tbody tr:nth-child(even) {
+    background: #fcfcfc;
+}
+
+.btn-group-sm .btn {
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s;
+}
+
+.btn-outline-primary:hover, .btn-outline-primary:focus {
+    background: #e0e7ff;
+    color: #3730a3;
+    border-color: #6366f1;
+}
+
+.btn-outline-danger:hover, .btn-outline-danger:focus {
+    background: #fee2e2;
+    color: #b91c1c;
+    border-color: #ef4444;
+}
+
+/* Адаптивность: на мобильных строки - карточки */
+@media (max-width: 768px) {
+    .dictionaries-table, .dictionaries-table thead, .dictionaries-table tbody, .dictionaries-table th, .dictionaries-table td, .dictionaries-table tr {
+        display: block;
+        width: 100%;
+    }
+
+    .dictionaries-table thead {
+        display: none;
+    }
+
+    .dictionaries-table tr {
+        margin-bottom: 1.5rem;
+        background: #fff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        border-radius: 12px;
+        padding: 0.5rem 0;
+    }
+
+    .dictionaries-table td {
+        position: relative;
+        padding-left: 48%;
+        border: none;
+        margin-bottom: 8px;
+        background: none;
+    }
+
+    .dictionaries-table td:before {
+        position: absolute;
+        top: 16px;
+        left: 18px;
+        width: 45%;
+        white-space: nowrap;
+        font-weight: 600;
+        color: #6b7280;
+        content: attr(data-label);
+    }
+}

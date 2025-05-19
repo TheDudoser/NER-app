@@ -1,19 +1,49 @@
-/* Стили для сообщения об ошибке */
-.error-message {
-    background-color: #ffebee; /* Светло-красный фон */
-    color: #b71c1c; /* Темно-красный текст */
-    padding: 1.5rem;
-    border-radius: 8px;
-    border: 2px solid #ef9a9a;
-    margin: 2rem auto;
-    max-width: 600px;
+.error-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border: none;
+    margin: 3rem auto 2rem auto;
+    background: #fff;
+    max-width: 420px;
+    padding: 2.5rem 2rem 2rem 2rem;
     text-align: center;
-    font-family: Arial, sans-serif;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.error-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    display: block;
+.error-illustration {
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: center;
 }
+
+.error-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #1e293b;
+}
+
+.error-message-text {
+    color: #cc0033;
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+}
+
+.error-home-btn {
+    display: inline-block;
+    background: #e0e7ff;
+    color: #3730a3;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 2rem;
+    font-weight: 500;
+    font-size: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+}
+
+.error-home-btn:hover, .error-home-btn:focus {
+    background: #6366f1;
+    color: #fff;
+}
+

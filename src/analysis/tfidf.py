@@ -8,18 +8,26 @@ import numpy as np
 morph = MorphAnalyzer()
 
 
-def lemma_analyzer(text: str, max_n: int) -> List[str]:
-    # 1) разбиваем на слова и знаки препинания
-    tokens = re.findall(r'\w+|[^\w\s]', text, flags=re.UNICODE)
-    ngrams: List[str] = []
-
-    # 2) скользящим окном строим n-граммы, пропуская окна с любым не-алфавитным токеном
+def lemma_analyzer_with_numbers(text: str, max_n: int) -> List[str]:
+    tokens = re.findall(
+        r"[A-Za-zА-Яа-яёЁ0-9]{2,}(?:-[A-Za-zА-Яа-яёЁ0-9]{2,})*|[^\w\s]",
+        text,
+        flags=re.UNICODE
+    )
+    ngrams = []
     for n in range(1, max_n + 1):
         for i in range(len(tokens) - n + 1):
-            window = tokens[i:i + n]
-            if all(tok.isalpha() for tok in window):
-                # 3) лемматизируем каждое слово в окне
-                lemmas = [morph.parse(tok)[0].normal_form for tok in window]
+            window = tokens[i:i+n]
+            if all(re.fullmatch(r"[A-Za-zА-Яа-яёЁ0-9-]+", tok) for tok in window):
+                lemmas = []
+                for tok in window:
+                    if '-' in tok:
+                        parts = tok.split('-')
+                        lemmas.append(
+                            '-'.join(morph.parse(p)[0].normal_form for p in parts)
+                        )
+                    else:
+                        lemmas.append(morph.parse(tok)[0].normal_form)
                 ngrams.append(' '.join(lemmas))
     return ngrams
 
@@ -29,7 +37,7 @@ def extract_top_ngrams_with_tfidf(
         ngram_count: int = 3,
         top_k: int = 10000
 ) -> List[Tuple[str, float]]:
-    bound_lemma_analyzer = partial(lemma_analyzer, max_n=ngram_count)
+    bound_lemma_analyzer = partial(lemma_analyzer_with_numbers, max_n=ngram_count)
     vectorizer = TfidfVectorizer(
         analyzer=bound_lemma_analyzer,
         use_idf=True

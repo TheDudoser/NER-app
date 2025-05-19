@@ -6,6 +6,10 @@ document.addEventListener('DOMContentLoaded', function () {
     let sourceElement = null;
     let connectionLines = [];
 
+    // Выбор порога if-idf
+    const range = document.getElementById('tfidfRange');
+    const number = document.getElementById('tfidfValue');
+
     // Добавляем обработчики событий для перетаскивания
     columns.forEach(column => {
         column.addEventListener('dragover', function (e) {
@@ -339,54 +343,40 @@ document.addEventListener('DOMContentLoaded', function () {
     // Функция для получения данных словаря
     function getDictionaryData() {
         let fileId = document.getElementById('file_id')?.textContent;
-        console.log(fileId)
+
+        // Общая функция для обработки элементов колонок
+        const processColumn = (elementId, phraseType) =>
+            Array.from(document.getElementById(elementId).children)
+                .map(el => ({
+                    id: el.dataset.id,
+                    text: el.textContent.split('\n')[1].trim(),
+                    tfidf: parseFloat(el.dataset.tfidf),
+                    type: el.dataset.type,
+                    hidden: el.dataset.hidden === 'true',
+                    phrase_type: phraseType
+                }));
+
+        // Собираем все элементы в один массив
+        const allItems = [
+            ...processColumn('phrases-column', 'phrase'),
+            ...processColumn('terms-column', 'term'),
+            ...processColumn('synonyms-column', 'synonym'),
+            ...processColumn('definitions-column', 'definition')
+        ];
+
         return {
             fileId: fileId,
-            terms: Array.from(document.getElementById('terms-column').children)
-                .map(el => ({
-                    id: el.dataset.id,
-                    text: el.innerText.split('\n')[0].trim(),
-                    tfidf: parseFloat(el.dataset.tfidf),
-                    type: el.dataset.type
-                })),
-            synonyms: Array.from(document.getElementById('synonyms-column').children)
-                .map(el => ({
-                    id: el.dataset.id,
-                    text: el.innerText.split('\n')[0].trim(),
-                    tfidf: parseFloat(el.dataset.tfidf),
-                    type: el.dataset.type
-                })),
-            definitions: Array.from(document.getElementById('definitions-column').children)
-                .map(el => ({
-                    id: el.dataset.id,
-                    text: el.innerText.split('\n')[0].trim(),
-                    tfidf: parseFloat(el.dataset.tfidf),
-                    type: el.dataset.type
-                })),
+            phrases: allItems,
             connections: connectionLines.map(conn => ({
-                from: conn.from,
-                to: conn.to
-            }))
+                from_id: conn.from,
+                to_id: conn.to
+            })),
+            tfidf_range: parseFloat(number.value)
         };
     }
 
     // Функция для загрузки данных словаря
     function loadDictionaryData(data) {
-        clearColumns();
-
-        // Создаем карточки
-        data.terms.forEach(item => {
-            document.getElementById('terms-column').appendChild(createPhraseCard(item));
-        });
-
-        data.synonyms.forEach(item => {
-            document.getElementById('synonyms-column').appendChild(createPhraseCard(item));
-        });
-
-        data.definitions.forEach(item => {
-            document.getElementById('definitions-column').appendChild(createPhraseCard(item));
-        });
-
         // Восстанавливаем соединения
         if (data.connections) {
             data.connections.forEach(conn => {
@@ -398,50 +388,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
         }
-    }
 
-    // Функция для создания карточки фразы
-    function createPhraseCard(item) {
-        const card = document.createElement('div');
-        card.className = 'phrase-card draggable';
-        card.draggable = true;
-        card.dataset.id = item.id;
-        card.dataset.tfidf = item.tfidf;
-        card.dataset.type = item.type;
-
-        const phraseText = document.createElement('div');
-        phraseText.textContent = item.text;
-        card.appendChild(phraseText);
-
-        const phraseInfo = document.createElement('div');
-        phraseInfo.className = 'phrase-info';
-
-        const typeBadge = document.createElement('span');
-        typeBadge.className = 'badge bg-secondary';
-        typeBadge.textContent = item.type;
-
-        const tfidfBadge = document.createElement('span');
-        tfidfBadge.className = 'badge bg-primary';
-        tfidfBadge.textContent = item.tfidf.toFixed(3);
-
-        phraseInfo.appendChild(typeBadge);
-        phraseInfo.appendChild(tfidfBadge);
-        card.appendChild(phraseInfo);
-
-        addConnectButton(card);
-
-        return card;
-    }
-
-    // Функция для очистки колонок
-    function clearColumns() {
-        document.getElementById('terms-column').innerHTML = '';
-        document.getElementById('synonyms-column').innerHTML = '';
-        document.getElementById('definitions-column').innerHTML = '';
-
-        // Удаляем все линии соединений
-        document.querySelectorAll('.connection-line').forEach(line => line.remove());
-        connectionLines.length = 0;
+        // Обновляем фильтр по tf-idf
+        number.value = data.tfidf_range;
+        range.value = data.tfidf_range;
+        applyTfidfFilter(data.tfidf_range);
     }
 
     // Экспорт словаря
@@ -456,7 +407,7 @@ document.addEventListener('DOMContentLoaded', function () {
         dictionary.name = dictionaryName;
 
         if (dictionary.fileId !== undefined) {
-            fetch(`/update-dictionary/${dictionary.fileId}`, {
+            fetch(`/api/dictionary/${dictionary.fileId}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -466,7 +417,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert('Словарь успешно обновлён');
+                        alert(data.message);
                     } else {
                         alert('Ошибка при обновлении словаря: ' + data.message);
                     }
@@ -476,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     alert('Произошла ошибка');
                 });
         } else {
-            fetch(`/save-dictionary`, {
+            fetch(`/api/dictionary`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -485,8 +436,10 @@ document.addEventListener('DOMContentLoaded', function () {
             })
                 .then(response => response.json())
                 .then(data => {
+                    console.log(data)
                     if (data.success) {
-                        alert('Словарь успешно сохранен');
+                        alert(data.message);
+                        window.location.href = `/dictionary/${data.dictionary_id}/edit`;
                     } else {
                         alert('Ошибка при сохранении словаря: ' + data.message);
                     }
@@ -496,6 +449,79 @@ document.addEventListener('DOMContentLoaded', function () {
                     alert('Произошла ошибка');
                 });
         }
+    });
+
+    // В начале файла добавим переменную для хранения текущего словаря
+    let currentDictionaryId = document.getElementById('file_id')?.textContent || null;
+
+    // Обработчик кнопки "Пополнить словарь"
+    document.getElementById('addToDictionaryBtn').addEventListener('click', function () {
+        fetch('/api/dictionaries')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Фильтруем текущий словарь из списка (если мы в режиме редактирования)
+                    const dictionaries = data.data.filter(dict =>
+                        !currentDictionaryId || dict.id.toString() !== currentDictionaryId
+                    );
+
+                    // Обновляем select в модальном окне
+                    const select = document.getElementById('targetDictionarySelect');
+                    select.innerHTML = `
+                    <option value="" selected disabled>Выберите словарь...</option>
+                    ${dictionaries.map(dict =>
+                        `<option value="${dict.id}">${dict.name}</option>`
+                    ).join('')}
+                `;
+
+                    // Показываем модальное окно
+                    const modal = new bootstrap.Modal(document.getElementById('addToDictionaryModal'));
+                    modal.show();
+                } else {
+                    alert('Ошибка загрузки списка словарей: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Произошла ошибка при загрузке словарей');
+            });
+    });
+
+    // Обработчик подтверждения объединения со словарём
+    document.getElementById('confirmAddToDictionaryBtn').addEventListener('click', function () {
+        const targetDictionaryId = document.getElementById('targetDictionarySelect').value;
+        if (!targetDictionaryId) {
+            alert('Выберите словарь для объединения');
+            return;
+        }
+
+        const currentDictionaryData = getDictionaryData();
+        currentDictionaryData.name = 'dict_for_merge';
+
+        fetch(`/api/dictionary/${targetDictionaryId}/merge`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(currentDictionaryData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    window.location.href = `/dictionary/${targetDictionaryId}/edit`;
+                } else {
+                    alert('Ошибка при пополнении словаря: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Произошла ошибка');
+            })
+            .finally(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addToDictionaryModal'));
+                modal.hide();
+            });
     });
 
     // Удаление всех связей
@@ -515,5 +541,33 @@ document.addEventListener('DOMContentLoaded', function () {
     // Проставление связей при редактировании
     if (window.DICTIONARY_DATA) {
         loadDictionaryData(window.DICTIONARY_DATA);
+    }
+
+    // Логика работы с порогом ifidf
+    range.addEventListener('input', () => {
+        number.value = range.value;
+        applyTfidfFilter(parseFloat(range.value));
+    });
+
+    number.addEventListener('input', () => {
+        let val = parseFloat(number.value);
+        if (isNaN(val)) val = 0;
+        val = Math.min(Math.max(val, 0), 1);
+        range.value = val.toFixed(3);
+        applyTfidfFilter(val);
+    });
+
+    function applyTfidfFilter(threshold) {
+        document.querySelectorAll('.phrase-card').forEach(card => {
+            const tfidf = parseFloat(card.dataset.tfidf);
+            if (tfidf < threshold) {
+                card.style.display = 'none';
+                card.dataset.hidden = 'true';
+            } else {
+                card.style.display = 'block';
+                card.dataset.hidden = 'false';
+            }
+        });
+        updateAllConnectionLines();
     }
 });
