@@ -378,8 +378,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     hidden: el.dataset.hidden === 'true'
                 })),
             connections: connectionLines.map(conn => ({
-                from: conn.from,
-                to: conn.to
+                from_id: conn.from,
+                to_id: conn.to
             })),
             tfidfRange: parseFloat(number.value)
         };
@@ -387,25 +387,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Функция для загрузки данных словаря
     function loadDictionaryData(data) {
-        // clearColumns();
-        //
-        // // Создаем карточки
-        // data.phrases.forEach(item => {
-        //     document.getElementById('phrases-column').appendChild(createPhraseCard(item));
-        // });
-        //
-        // data.terms.forEach(item => {
-        //     document.getElementById('terms-column').appendChild(createPhraseCard(item));
-        // });
-        //
-        // data.synonyms.forEach(item => {
-        //     document.getElementById('synonyms-column').appendChild(createPhraseCard(item));
-        // });
-        //
-        // data.definitions.forEach(item => {
-        //     document.getElementById('definitions-column').appendChild(createPhraseCard(item));
-        // });
-
         // Восстанавливаем соединения
         if (data.connections) {
             data.connections.forEach(conn => {
@@ -422,50 +403,6 @@ document.addEventListener('DOMContentLoaded', function () {
         number.value = data.tfidfRange;
         range.value = data.tfidfRange;
         applyTfidfFilter(data.tfidfRange);
-    }
-
-    // Функция для создания карточки фразы
-    function createPhraseCard(item) {
-        const card = document.createElement('div');
-        card.className = 'phrase-card draggable';
-        card.draggable = true;
-        card.dataset.id = item.id;
-        card.dataset.tfidf = item.tfidf;
-        card.dataset.type = item.type;
-
-        const phraseText = document.createElement('div');
-        phraseText.textContent = item.text;
-        card.appendChild(phraseText);
-
-        const phraseInfo = document.createElement('div');
-        phraseInfo.className = 'phrase-info';
-
-        const typeBadge = document.createElement('span');
-        typeBadge.className = 'badge bg-secondary';
-        typeBadge.textContent = item.type;
-
-        const tfidfBadge = document.createElement('span');
-        tfidfBadge.className = 'badge bg-primary';
-        tfidfBadge.textContent = item.tfidf.toFixed(3);
-
-        phraseInfo.appendChild(typeBadge);
-        phraseInfo.appendChild(tfidfBadge);
-        card.appendChild(phraseInfo);
-
-        addConnectButton(card);
-
-        return card;
-    }
-
-    // Функция для очистки колонок
-    function clearColumns() {
-        document.getElementById('terms-column').innerHTML = '';
-        document.getElementById('synonyms-column').innerHTML = '';
-        document.getElementById('definitions-column').innerHTML = '';
-
-        // Удаляем все линии соединений
-        document.querySelectorAll('.connection-line').forEach(line => line.remove());
-        connectionLines.length = 0;
     }
 
     // Экспорт словаря
