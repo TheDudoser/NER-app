@@ -12,3 +12,5 @@ os.makedirs(DICTIONARIES_DIR, exist_ok=True)
 
 with open('.version', 'r', encoding='utf-8') as f:
     version = f.readline().strip()
+
+DATABASE_URL = os.getenv('DATABASE_URL')
