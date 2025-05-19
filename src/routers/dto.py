@@ -22,7 +22,7 @@ class ConnectionDTO:
 @dataclass
 class DictionaryDTO:
     name: str
-    tfidfRange: float
+    tfidf_range: float
     phrases: List[TermDTO]
     connections: List[ConnectionDTO]
     fileId: Optional[int] = None

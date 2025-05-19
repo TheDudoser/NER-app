@@ -371,7 +371,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 from_id: conn.from,
                 to_id: conn.to
             })),
-            tfidfRange: parseFloat(number.value)
+            tfidf_range: parseFloat(number.value)
         };
     }
 
@@ -390,9 +390,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // Обновляем фильтр по tf-idf
-        number.value = data.tfidfRange;
-        range.value = data.tfidfRange;
-        applyTfidfFilter(data.tfidfRange);
+        number.value = data.tfidf_range;
+        range.value = data.tfidf_range;
+        applyTfidfFilter(data.tfidf_range);
     }
 
     // Экспорт словаря
