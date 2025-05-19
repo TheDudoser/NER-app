@@ -427,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert('Словарь успешно обновлён');
+                        alert(data.message);
                     } else {
                         alert('Ошибка при обновлении словаря: ' + data.message);
                     }
@@ -448,7 +448,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(data => {
                     console.log(data)
                     if (data.success) {
-                        alert('Словарь успешно сохранен');
+                        alert(data.message);
                         window.location.href = `/dictionary/${data.dictionary_id}/edit`;
                     } else {
                         alert('Ошибка при сохранении словаря: ' + data.message);
@@ -459,6 +459,79 @@ document.addEventListener('DOMContentLoaded', function () {
                     alert('Произошла ошибка');
                 });
         }
+    });
+
+    // В начале файла добавим переменную для хранения текущего словаря
+    let currentDictionaryId = document.getElementById('file_id')?.textContent || null;
+
+    // Обработчик кнопки "Пополнить словарь"
+    document.getElementById('addToDictionaryBtn').addEventListener('click', function () {
+        fetch('/api/dictionaries')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Фильтруем текущий словарь из списка (если мы в режиме редактирования)
+                    const dictionaries = data.data.filter(dict =>
+                        !currentDictionaryId || dict.id.toString() !== currentDictionaryId
+                    );
+
+                    // Обновляем select в модальном окне
+                    const select = document.getElementById('targetDictionarySelect');
+                    select.innerHTML = `
+                    <option value="" selected disabled>Выберите словарь...</option>
+                    ${dictionaries.map(dict =>
+                        `<option value="${dict.id}">${dict.name}</option>`
+                    ).join('')}
+                `;
+
+                    // Показываем модальное окно
+                    const modal = new bootstrap.Modal(document.getElementById('addToDictionaryModal'));
+                    modal.show();
+                } else {
+                    alert('Ошибка загрузки списка словарей: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Произошла ошибка при загрузке словарей');
+            });
+    });
+
+    // Обработчик подтверждения объединения со словарём
+    document.getElementById('confirmAddToDictionaryBtn').addEventListener('click', function () {
+        const targetDictionaryId = document.getElementById('targetDictionarySelect').value;
+        if (!targetDictionaryId) {
+            alert('Выберите словарь для объединения');
+            return;
+        }
+
+        const currentDictionaryData = getDictionaryData();
+        currentDictionaryData.name = 'dict_for_merge';
+
+        fetch(`/api/dictionary/${targetDictionaryId}/merge`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(currentDictionaryData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    window.location.href = `/dictionary/${targetDictionaryId}/edit`;
+                } else {
+                    alert('Ошибка при пополнении словаря: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Произошла ошибка');
+            })
+            .finally(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addToDictionaryModal'));
+                modal.hide();
+            });
     });
 
     // Удаление всех связей
@@ -482,29 +555,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Логика работы с порогом ifidf
     range.addEventListener('input', () => {
-      number.value = range.value;
-      applyTfidfFilter(parseFloat(range.value));
+        number.value = range.value;
+        applyTfidfFilter(parseFloat(range.value));
     });
 
     number.addEventListener('input', () => {
-      let val = parseFloat(number.value);
-      if (isNaN(val)) val = 0;
-      val = Math.min(Math.max(val, 0), 1);
-      range.value = val.toFixed(3);
-      applyTfidfFilter(val);
+        let val = parseFloat(number.value);
+        if (isNaN(val)) val = 0;
+        val = Math.min(Math.max(val, 0), 1);
+        range.value = val.toFixed(3);
+        applyTfidfFilter(val);
     });
 
     function applyTfidfFilter(threshold) {
-      document.querySelectorAll('.phrase-card').forEach(card => {
-        const tfidf = parseFloat(card.dataset.tfidf);
-        if (tfidf < threshold) {
-          card.style.display = 'none';
-          card.dataset.hidden = 'true';
-        } else {
-          card.style.display = 'block';
-          card.dataset.hidden = 'false';
-        }
-      });
-      updateAllConnectionLines();
+        document.querySelectorAll('.phrase-card').forEach(card => {
+            const tfidf = parseFloat(card.dataset.tfidf);
+            if (tfidf < threshold) {
+                card.style.display = 'none';
+                card.dataset.hidden = 'true';
+            } else {
+                card.style.display = 'block';
+                card.dataset.hidden = 'false';
+            }
+        });
+        updateAllConnectionLines();
     }
 });

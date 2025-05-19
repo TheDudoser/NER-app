@@ -6,6 +6,29 @@
 {% endblock %}
 
 {% block content %}
+    <!-- Добавляем модальное окно для выбора словаря -->
+    <div class="modal fade" id="addToDictionaryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title">Выберите словарь для объединения</h5>
+                        <small class="text-muted">При объединении целевой словарь имеет больший приоритет.
+                            <br>Повторяющиеся элементы не будут добавлены</small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <select class="form-select" id="targetDictionarySelect">
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="confirmAddToDictionaryBtn">Подтвердить</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="card mb-4">
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -26,7 +49,7 @@
                         <i class="bi bi-link-45deg"></i> Очистить все связи
                     </button>
                     <button class="btn btn-outline-primary me-2" id="addToDictionaryBtn">
-                        <i class="bi bi-plus-circle"></i> Пополнить словарь
+                        <i class="bi bi-plus-circle"></i> Объединить
                     </button>
                     <button class="btn btn-primary" id="exportDictionaryBtn">
                         <i class="bi bi-save"></i> Сохранить
@@ -37,23 +60,25 @@
             <div class="alert alert-info mb-3 d-flex align-items-center">
                 <i class="bi bi-info-circle me-2"></i>
                 <span>
-                    Перетащите фразы между колонками. Для создания связей используйте кнопку
-                    <svg viewBox="0 0 16 16" width="16px" height="16px" fill="currentColor" style="vertical-align: middle;">
+                    Словосочетания можно перетаскивать между колонками.
+                    <br>Для создания связей между словосочетаниями из разных колонок используйте кнопку
+                    <svg viewBox="0 0 16 16" width="16px" height="16px" fill="currentColor"
+                         style="vertical-align: middle;">
                         <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"></path>
                         <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"></path>
                     </svg>
-                    на карточке.
+                    на карточке словосочетания.
                 </span>
             </div>
 
             <div class="mb-3">
-                <label for="dictionaryName" class="form-label">Название словаря:</label>
-                <input type="text" class="form-control" id="dictionaryName"
+                <label for="dictionaryName" class="form-label">Название словаря*</label>
+                <input type="text" class="form-control" required id="dictionaryName"
                        placeholder="Введите название" value="{{ dictionary is defined and dictionary.name or '' }}">
             </div>
 
             <div class="d-flex align-items-center mb-3 flex-wrap">
-                <label for="tfidfRange" class="form-label me-3 mb-0">Порог TF-IDF:</label>
+                <label for="tfidfRange" class="form-label me-3 mb-0">Порог TF-IDF</label>
                 <input type="range"
                        class="form-range me-3"
                        style="min-width: 100px; max-width: 300px;"

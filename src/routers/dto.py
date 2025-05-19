@@ -28,3 +28,12 @@ class DictionaryDTO:
     definitions: List[TermDTO]
     connections: List[ConnectionDTO]
     fileId: Optional[int] = None
+
+
+@dataclass
+class DictionaryShortDTO:
+    id: int
+    name: str
+    created_at: float  # timestamp
+    terms_count: int
+    connections_count: int
