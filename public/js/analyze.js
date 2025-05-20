@@ -30,7 +30,8 @@ if (createDictBtn) {
                 };
             }),
             total_phrases: parseInt(document.getElementById('totalPhrases').textContent),
-            unique_patterns: parseInt(document.getElementById('uniquePatterns').textContent)
+            unique_patterns: parseInt(document.getElementById('uniquePatterns').textContent),
+            text: document.getElementById('textInput').value,
         };
 
         // Отправляем данные на сервер

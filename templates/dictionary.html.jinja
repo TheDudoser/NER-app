@@ -140,5 +140,8 @@
         {% if dictionary_data %}
             window.DICTIONARY_DATA = {{ dictionary_data|tojson }};
         {% endif %}
+        {% if text %}
+            window.TEXT_CONTENT = {{ text|tojson|safe }};
+        {% endif %}
     </script>
 {% endblock %}

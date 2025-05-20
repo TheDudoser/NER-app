@@ -25,7 +25,8 @@ class DictionaryDTO:
     tfidf_range: float
     phrases: List[TermDTO]
     connections: List[ConnectionDTO]
-    fileId: Optional[int] = None
+    id: Optional[int] = None
+    document_text: str = ''
 
 
 @dataclass

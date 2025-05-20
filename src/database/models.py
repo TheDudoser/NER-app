@@ -26,6 +26,7 @@ class Dictionary(SQLModel, table=True):
 
     terms: List["Term"] = Relationship(back_populates="dictionary")
     connections: List["Connection"] = Relationship(back_populates="dictionary")
+    documents: List["Document"] = Relationship(back_populates="dictionary")
 
     @property
     def created_at_local(self) -> datetime | None:
@@ -38,6 +39,14 @@ class Dictionary(SQLModel, table=True):
         if self.updated_at is None:
             return None
         return self.updated_at.astimezone(VL_TIMEZONE)
+
+
+class Document(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    dictionary_id: int = Field(foreign_key="dictionary.id")
+    content: str
+
+    dictionary: Dictionary = Relationship(back_populates="documents")
 
 
 class Term(SQLModel, table=True):

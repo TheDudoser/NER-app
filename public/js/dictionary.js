@@ -365,13 +365,14 @@ document.addEventListener('DOMContentLoaded', function () {
         ];
 
         return {
-            fileId: fileId,
+            id: fileId,
             phrases: allItems,
             connections: connectionLines.map(conn => ({
                 from_id: conn.from,
                 to_id: conn.to
             })),
-            tfidf_range: parseFloat(number.value)
+            tfidf_range: parseFloat(number.value),
+            document_text: window.TEXT_CONTENT ?? ''
         };
     }
 
@@ -406,8 +407,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const dictionary = getDictionaryData();
         dictionary.name = dictionaryName;
 
-        if (dictionary.fileId !== undefined) {
-            fetch(`/api/dictionary/${dictionary.fileId}`, {
+        if (dictionary.id !== undefined) {
+            fetch(`/api/dictionary/${dictionary.id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -418,6 +419,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(data => {
                     if (data.success) {
                         alert(data.message);
+                        window.location.reload()
                     } else {
                         alert('Ошибка при обновлении словаря: ' + data.message);
                     }
