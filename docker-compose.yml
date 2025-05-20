@@ -16,6 +16,7 @@ services:
 
   postgres:
     # Образ postgres с поддержкой pgvector
+    # TODO: Вернуть на postgres:17-alpine, т.к. pgvector оказался излишен
     image: pgvector/pgvector:pg17
     environment:
       POSTGRES_DB: ${DB_NAME}
