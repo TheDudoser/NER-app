@@ -168,7 +168,6 @@ document.addEventListener('DOMContentLoaded', function () {
         );
 
         if (existingConnection) {
-            alert('Эти элементы уже связаны');
             return;
         }
 
