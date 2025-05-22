@@ -1,6 +1,5 @@
 from typing import List, Optional
 from sqlmodel import SQLModel, Field, Relationship, Column, Enum
-from pgvector.sqlalchemy import Vector
 from datetime import datetime, UTC
 
 from config import VL_TIMEZONE
@@ -57,13 +56,6 @@ class Term(SQLModel, table=True):
     phrase_type: PhraseType = Field(sa_column=Column(Enum(PhraseType), index=True))
     tfidf: float
     hidden: bool = False
-    embedding: List[float] = Field(
-        sa_column=Column(
-            # Обычно за dim берут число уникальных слов в тексте, поэтому задал большой порог
-            Vector(10000),
-            nullable=True
-        )
-    )
 
     dictionary: Dictionary = Relationship(back_populates="terms")
     from_connections: List["Connection"] = Relationship(
