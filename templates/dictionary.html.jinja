@@ -44,10 +44,7 @@
                 {% if is_edit_mode %}
                     <div id="file_id" hidden="hidden">{{ dictionary.id }}</div>
                 {% endif %}
-                <div>
-                    <button class="btn btn-outline-danger" id="clearConnectionsBtn">
-                        <i class="bi bi-link-45deg"></i> Очистить все связи
-                    </button>
+                <div style="display: flex;">
                     <button class="btn btn-outline-primary me-2" id="addToDictionaryBtn">
                         <i class="bi bi-plus-circle"></i> Объединить
                     </button>
@@ -60,14 +57,8 @@
             <div class="alert alert-info mb-3 d-flex align-items-center">
                 <i class="bi bi-info-circle me-2"></i>
                 <span>
-                    Словосочетания можно перетаскивать между колонками.
-                    <br>Для создания связей между словосочетаниями из разных колонок используйте кнопку
-                    <svg viewBox="0 0 16 16" width="16px" height="16px" fill="currentColor"
-                         style="vertical-align: middle;">
-                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"></path>
-                        <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"></path>
-                    </svg>
-                    на карточке словосочетания.
+                    Словосочетания можно перетаскивать между колонками.<br>
+                    Нажимая на термин вы переходите в режим работы с ним.
                 </span>
             </div>
 

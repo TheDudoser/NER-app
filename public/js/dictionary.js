@@ -2,13 +2,15 @@ document.addEventListener('DOMContentLoaded', function () {
     // Получаем элементы колонок
     const columns = document.querySelectorAll('.drop-column');
     let draggedItem = null;
-    let connectionMode = false;
-    let sourceElement = null;
-    let connectionLines = [];
+    let globalConnections = [];
 
     // Выбор порога if-idf
     const range = document.getElementById('tfidfRange');
     const number = document.getElementById('tfidfValue');
+
+    let prevSelectedTerm = null;
+    let selectedTerm = null;
+    let selectedNonTerms = [];
 
     // Добавляем обработчики событий для перетаскивания
     columns.forEach(column => {
@@ -41,39 +43,91 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     this.appendChild(draggedItem);
                 }
-                updateAllConnectionLines();
+
+                // Включаем showConnectedMode, если элемент перемещен не в phrases-column
+                if (this.id !== 'phrases-column') {
+                    showConnectedMode(draggedItem);
+                } else {
+                    draggedItem.classList.remove('connected');
+                }
             }
         });
     });
+
+    function showConnectedMode(card) {
+        if (card.parentElement.id === 'terms-column') {
+            prevSelectedTerm = selectedTerm;
+            if (selectedTerm !== null) {
+                prevSelectedTerm.classList.remove('connected');
+            }
+            selectedTerm = card;
+            selectedTerm.classList.add('connected');
+        } else {
+            selectedNonTerms.push(card);
+            card.classList.add('connected');
+        }
+
+        if (selectedTerm && card !== selectedTerm) {
+            createConnection(selectedTerm, card);
+            selectedNonTerms = [];
+            // prevSelectedTerm = null;
+        } else if (selectedNonTerms.length > 0 && selectedTerm === card && prevSelectedTerm === null) {
+            for (let nonTerm of selectedNonTerms) {
+                createConnection(card, nonTerm);
+            }
+        }
+
+        // 3. Отображаем только карточки, связанные с новым термином,
+        //    остальные скрываем в ненужных колонках (кроме phrases-column)
+        document.querySelectorAll('.drop-column:not(#phrases-column):not(#terms-column) .phrase-card')
+            .forEach(_ => {
+                globalConnections.forEach(conn => {
+                    const isLinked = conn.fromElement === selectedTerm;
+                    conn.toElement.style.display = isLinked ? 'block' : 'none';
+
+                    if (isLinked) {
+                        conn.fromElement.classList.add('connected');
+                    } else {
+                        conn.fromElement.classList.remove('connected');
+                    }
+                });
+            });
+    }
+
+    // Вешаем обработчик клика на все термы
+    document.getElementById('terms-column')
+        .addEventListener('click', event => {
+            const card = event.target.closest('.phrase-card');
+            if (!card) return;
+            showConnectedMode(card);
+        });
 
     // Обработчики для элементов, которые можно перетаскивать
     document.addEventListener('dragstart', function (e) {
         if (e.target.classList.contains('draggable')) {
             draggedItem = e.target;
 
-            const connectionsToRemove = connectionLines.filter(conn =>
+            const connectionsToRemove = globalConnections.filter(conn =>
                 conn.from === draggedItem.dataset.id || conn.to === draggedItem.dataset.id
             );
 
             // Удаляем соединения и обновляем статус connected
             connectionsToRemove.forEach(conn => {
-                conn.line.remove();
-
                 // Проверяем оставшиеся связи для fromElement
-                const hasOtherFrom = connectionLines.some(c =>
+                const hasOtherFrom = globalConnections.some(c =>
                     c.from === conn.fromElement.dataset.id && c !== conn
                 );
                 if (!hasOtherFrom) conn.fromElement.classList.remove('connected');
 
                 // Проверяем оставшиеся связи для toElement
-                const hasOtherTo = connectionLines.some(c =>
+                const hasOtherTo = globalConnections.some(c =>
                     c.to === conn.toElement.dataset.id && c !== conn
                 );
                 if (!hasOtherTo) conn.toElement.classList.remove('connected');
             });
 
             // Фильтруем массив соединений
-            connectionLines = connectionLines.filter(conn =>
+            globalConnections = globalConnections.filter(conn =>
                 !(conn.from === draggedItem.dataset.id || conn.to === draggedItem.dataset.id)
             );
 
@@ -86,74 +140,9 @@ document.addEventListener('DOMContentLoaded', function () {
             setTimeout(() => {
                 e.target.style.display = 'block';
                 draggedItem = null;
-                updateAllConnectionLines(); // Обновляем оставшиеся соединения
             }, 0);
         }
     });
-
-    document.addEventListener('dragend', function (e) {
-        if (e.target.classList.contains('draggable')) {
-            setTimeout(() => {
-                e.target.style.display = 'block';
-                draggedItem = null;
-            }, 0);
-        }
-    });
-
-    // Добавляем кнопки соединения к существующим карточкам
-    document.querySelectorAll('.phrase-card').forEach(card => {
-        addConnectButton(card);
-    });
-
-    // Функция для создания кнопки соединения
-    function addConnectButton(card) {
-        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        const path1 = document.createElementNS("http://www.w3.org/2000/svg", 'path');
-        const path2 = document.createElementNS("http://www.w3.org/2000/svg", 'path');
-
-        svg.classList.add('connect-svg');
-        svg.setAttribute('viewbox', '0 0 16 16');
-        svg.setAttribute('width', '16px');
-        svg.setAttribute('height', '16px');
-        svg.setAttribute('fill', 'currentColor');
-
-        path1.setAttribute('d', 'M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16');
-        path2.setAttribute('d', 'M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4');
-
-        svg.appendChild(path1);
-        svg.appendChild(path2);
-
-        svg.addEventListener('click', function (e) {
-            e.stopPropagation();
-            toggleConnectionMode(card);
-        });
-        card.appendChild(svg);
-    }
-
-    // Функция для переключения режима соединения
-    function toggleConnectionMode(card) {
-        if (connectionMode && sourceElement === card) {
-            // Выходим из режима соединения
-            connectionMode = false;
-            // sourceElement.classList.remove('connected');
-            sourceElement = null;
-            document.body.classList.remove('connection-mode');
-        } else if (!connectionMode) {
-            // Входим в режим соединения
-            connectionMode = true;
-            sourceElement = card;
-            document.body.classList.add('connection-mode');
-            card.classList.add('connected');
-        } else {
-            // Создаем соединение
-            createConnection(sourceElement, card);
-            // Выходим из режима соединения
-            connectionMode = false;
-            // sourceElement.classList.remove('connected');
-            sourceElement = null;
-            document.body.classList.remove('connection-mode');
-        }
-    }
 
     // Функция для создания соединения
     function createConnection(fromElement, toElement) {
@@ -166,179 +155,36 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        // Проверяем, что ни один из элементов не в колонке phrases-column
+        if (fromColumn.id === 'phrases-column' || toColumn.id === 'phrases-column') {
+            alert('Элементы из этой колонки нельзя связывать с другими элементами');
+            return;
+        }
+
         // Проверяем, нет ли уже такого соединения
-        const existingConnection = connectionLines.find(conn =>
+        const existingConnection = globalConnections.find(conn =>
             (conn.from === fromElement.dataset.id && conn.to === toElement.dataset.id) ||
             (conn.from === toElement.dataset.id && conn.to === fromElement.dataset.id)
         );
 
         if (existingConnection) {
-            alert('Эти элементы уже связаны');
             return;
         }
-
-        // Создаем линию
-        const line = document.createElement('div');
-        line.className = 'connection-line';
-        fromColumn.appendChild(line)
-
-        // Добавляем кнопку удаления
-        const deleteBtn = document.createElement('div');
-        deleteBtn.className = 'delete-connection';
-        deleteBtn.innerHTML = '&times;';
-        deleteBtn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            removeConnection(line);
-        });
-        line.appendChild(deleteBtn);
-
-        document.querySelector('.connection-container').appendChild(line);
-
-        // Обновляем позицию линии
-        updateConnectionLine(line, fromElement, toElement);
 
         // Сохраняем информацию о соединении
         const connection = {
             from: fromElement.dataset.id,
             to: toElement.dataset.id,
-            line: line,
             fromElement: fromElement,
             toElement: toElement
         };
 
-        connectionLines.push(connection);
+        globalConnections.push(connection);
 
         // Добавляем классы для визуального отображения связи
         fromElement.classList.add('connected');
         toElement.classList.add('connected');
     }
-
-    // Функция для удаления соединения
-    function removeConnection(line) {
-        const connectionIndex = connectionLines.findIndex(conn => conn.line === line);
-        if (connectionIndex !== -1) {
-            const connection = connectionLines[connectionIndex];
-            connection.fromElement.classList.remove('connected');
-            connection.toElement.classList.remove('connected');
-            line.remove();
-            connectionLines.splice(connectionIndex, 1);
-        }
-    }
-
-    function updateConnectionLine(line, fromElement, toElement) {
-        const fromRect = fromElement.getBoundingClientRect();
-        const toRect = toElement.getBoundingClientRect();
-        const containerRect = line.parentElement.getBoundingClientRect();
-
-        // Определяем центр каждого элемента
-        const fromCenter = {
-            x: (fromRect.left + fromRect.right) / 2 - containerRect.left,
-            y: (fromRect.top + fromRect.bottom) / 2 - containerRect.top
-        };
-        const toCenter = {
-            x: (toRect.left + toRect.right) / 2 - containerRect.left,
-            y: (toRect.top + toRect.bottom) / 2 - containerRect.top
-        };
-
-        // Определяем направление от from к to
-        const dx = toCenter.x - fromCenter.x;
-        const dy = toCenter.y - fromCenter.y;
-
-        // Вычисляем угол между центрами
-        const angle = Math.atan2(dy, dx);
-
-        // Находим точки пересечения линии с границами элементов
-        const fromPoint = getIntersectionPoint(fromRect, containerRect, angle);
-        const toPoint = getIntersectionPoint(toRect, containerRect, -Math.PI + angle);
-
-        // Вычисляем длину и угол для линии
-        const length = Math.sqrt(Math.pow(toPoint.x - fromPoint.x, 2) + Math.pow(toPoint.y - fromPoint.y, 2));
-        const lineAngle = Math.atan2(toPoint.y - fromPoint.y, toPoint.x - fromPoint.x) * 180 / Math.PI;
-
-        // Устанавливаем стили линии
-        line.style.width = `${length}px`;
-        line.style.left = `${fromPoint.x}px`;
-        line.style.top = `${fromPoint.y}px`;
-        line.style.transform = `rotate(${lineAngle}deg)`;
-        line.style.zIndex = '1';
-    }
-
-    // Функция для нахождения точки пересечения линии с границей элемента
-    function getIntersectionPoint(rect, containerRect, angle) {
-        const center = {
-            x: (rect.left + rect.right) / 2 - containerRect.left,
-            y: (rect.top + rect.bottom) / 2 - containerRect.top
-        };
-
-        // Полуширина и полувысота элемента
-        const halfWidth = rect.width / 2;
-        const halfHeight = rect.height / 2;
-
-        // Вычисляем точку пересечения с границей прямоугольника
-        let x, y;
-
-        // Определяем квадрант угла
-        const absAngle = Math.abs(angle);
-        const tanAngle = Math.tan(absAngle);
-
-        // Вычисляем точку пересечения в зависимости от угла
-        if (absAngle <= Math.PI / 4 || absAngle > 3 * Math.PI / 4) {
-            // Пересекаем правую или левую границу
-            const signX = Math.cos(angle) > 0 ? 1 : -1;
-            x = center.x + signX * halfWidth;
-            y = center.y + signX * halfWidth * tanAngle * (Math.sin(angle) > 0 ? 1 : -1);
-
-            // Проверяем, не выходит ли y за границы
-            if (y > center.y + halfHeight) {
-                y = center.y + halfHeight;
-                x = center.x + (y - center.y) / tanAngle;
-            } else if (y < center.y - halfHeight) {
-                y = center.y - halfHeight;
-                x = center.x - (y - center.y) / tanAngle;
-            }
-        } else {
-            // Пересекаем верхнюю или нижнюю границу
-            const signY = Math.sin(angle) > 0 ? 1 : -1;
-            y = center.y + signY * halfHeight;
-            x = center.x + signY * halfHeight / tanAngle * (Math.cos(angle) > 0 ? 1 : -1);
-
-            // Проверяем, не выходит ли x за границы
-            if (x > center.x + halfWidth) {
-                x = center.x + halfWidth;
-                y = center.y + (x - center.x) * tanAngle;
-            } else if (x < center.x - halfWidth) {
-                x = center.x - halfWidth;
-                y = center.y - (x - center.x) * tanAngle;
-            }
-        }
-
-        return {x, y};
-    }
-
-    // Функция для обновления всех линий
-    function updateAllConnectionLines() {
-        connectionLines.forEach(conn => {
-            if (conn.fromElement && conn.toElement) {
-                updateConnectionLine(conn.line, conn.fromElement, conn.toElement);
-            }
-        });
-    }
-
-    // Обработчик клика в режиме соединения
-    document.addEventListener('click', function (e) {
-        if (!connectionMode || !sourceElement) return;
-
-        const targetCard = e.target.closest('.phrase-card');
-        if (targetCard && targetCard !== sourceElement) {
-            createConnection(sourceElement, targetCard);
-            toggleConnectionMode(sourceElement); // Выходим из режима соединения
-        }
-    });
-
-    // Обновляем позиции линий при изменении размера окна
-    window.addEventListener('resize', function () {
-        updateAllConnectionLines();
-    });
 
     // Функция для получения данных словаря
     function getDictionaryData() {
@@ -367,7 +213,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return {
             id: fileId,
             phrases: allItems,
-            connections: connectionLines.map(conn => ({
+            connections: globalConnections.map(conn => ({
                 from_id: conn.from,
                 to_id: conn.to
             })),
@@ -378,6 +224,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Функция для загрузки данных словаря
     function loadDictionaryData(data) {
+        // Обновляем фильтр по tf-idf
+        number.value = data.tfidf_range;
+        range.value = data.tfidf_range;
+        applyTfidfFilter(data.tfidf_range);
+
         // Восстанавливаем соединения
         if (data.connections) {
             data.connections.forEach(conn => {
@@ -390,10 +241,12 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
-        // Обновляем фильтр по tf-idf
-        number.value = data.tfidf_range;
-        range.value = data.tfidf_range;
-        applyTfidfFilter(data.tfidf_range);
+        const termsCol = document.getElementById('terms-column');
+        const lastTerm = termsCol.querySelector('.phrase-card:last-child');
+        document.getElementById('terms-column')
+        if (lastTerm) {
+            showConnectedMode(lastTerm);
+        }
     }
 
     // Экспорт словаря
@@ -526,20 +379,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     });
 
-    // Удаление всех связей
-    document.getElementById('clearConnectionsBtn').addEventListener('click', function () {
-        // Удаляем все линии соединений
-        document.querySelectorAll('.connection-line').forEach(line => line.remove());
-
-        // Удаляем класс connected со всех карточек
-        document.querySelectorAll('.phrase-card.connected').forEach(card => {
-            card.classList.remove('connected');
-        });
-
-        // Очищаем массив соединений
-        connectionLines = [];
-    });
-
     // Проставление связей при редактировании
     if (window.DICTIONARY_DATA) {
         loadDictionaryData(window.DICTIONARY_DATA);
@@ -570,6 +409,5 @@ document.addEventListener('DOMContentLoaded', function () {
                 card.dataset.hidden = 'false';
             }
         });
-        updateAllConnectionLines();
     }
 });

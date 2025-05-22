@@ -1,7 +1,7 @@
 from dataclasses import asdict
 import json
 import os
-from typing import Optional
+from typing import Optional, Type
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
@@ -48,31 +48,94 @@ async def save_analysis(request: Request) -> JSONResponse:
 async def save_dictionary(dict_dto: DictionaryDTO, db: Session = Depends(get_session)) -> JSONResponse:
     try:
         with db.begin():
-            # 1) Создаём запись словаря
-            dict_obj = Dictionary(name=dict_dto.name, tfidf_range=dict_dto.tfidf_range)
+            # 1) Создаём словарь и документ
+            dict_obj = Dictionary(
+                name=dict_dto.name,
+                tfidf_range=dict_dto.tfidf_range
+            )
             db.add(dict_obj)
             db.flush()
 
-            # 2) Создаём документ с исходным текстом
-            document_obj = Document(content=dict_dto.document_text, dictionary_id=dict_obj.id)
-            db.add(document_obj)
-            db.flush()
+            db.add(Document(
+                content=dict_dto.document_text,
+                dictionary_id=dict_obj.id
+            ))
 
-            # 3) Создаём термины и связи
-            result = _process_terms_and_connections(dict_dto, dict_obj.id, db)
-            if isinstance(result, JSONResponse):
-                return result
+            # 3) Обрабатываем термины и связи
+            if error_response := _process_terms_for_new_dictionary(dict_dto, dict_obj.id, db):
+                return error_response
 
         return JSONResponse(
-            content={"success": True, "dictionary_id": dict_obj.id, "message": "Словарь успешно сохранён"}
+            status_code=status.HTTP_201_CREATED,
+            content={
+                "success": True,
+                "dictionary_id": dict_obj.id,
+                "message": "Словарь успешно сохранён"
+            }
         )
 
     except Exception as e:
         logger.error(f"Ошибка сохранения словаря: {str(e)}", exc_info=True)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"success": False, "message": str(e)}
+            content={
+                "success": False,
+                "message": "Произошла ошибка при создании словаря"
+            }
         )
+
+
+def _process_terms_for_new_dictionary(
+        dict_dto: DictionaryDTO,
+        dictionary_id: int,
+        db: Session
+) -> Optional[JSONResponse]:
+    """Оптимизированная обработка терминов для нового словаря."""
+    # Создаем все термины сначала
+    terms = []
+    term_id_mapping = {}  # {старый_id: новый_объект_термина}
+
+    for term_dto in dict_dto.phrases:
+        term = Term(
+            dictionary_id=dictionary_id,
+            phrase_type=term_dto.phrase_type,
+            text=term_dto.text,
+            type=term_dto.type,
+            tfidf=term_dto.tfidf,
+            hidden=term_dto.hidden
+        )
+        terms.append(term)
+        db.add(term)
+
+    db.flush()  # Получаем ID всех терминов
+
+    # Создаем маппинг старых ID к новым
+    for term_dto, term in zip(dict_dto.phrases, terms):
+        if term_dto.id is not None:
+            term_id_mapping[term_dto.id] = term.id
+
+    # Создаем связи
+    for conn in dict_dto.connections:
+        from_id = term_id_mapping.get(conn.from_id, conn.from_id)
+        to_id = term_id_mapping.get(conn.to_id, conn.to_id)
+
+        # Проверяем, что оба термина существуют
+        if not db.get(Term, from_id) or not db.get(Term, to_id):
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content={
+                    "success": False,
+                    "message": f"Неверные ID связей: from={conn.from_id}, to={conn.to_id}"
+                }
+            )
+
+        db.add(Connection(
+            dictionary_id=dictionary_id,
+            from_term_id=from_id,
+            to_term_id=to_id
+        ))
+
+    return None
 
 
 @api_router.patch("/dictionary/{dictionary_id}")
@@ -89,20 +152,13 @@ async def update_dictionary(dict_dto: DictionaryDTO, dictionary_id: int,
                 )
 
             # Обновляем свойства словаря
-            # При обновлении текст документа не меняем
             dict_obj.name = dict_dto.name
             dict_obj.tfidf_range = dict_dto.tfidf_range
-
             db.add(dict_obj)
             db.flush()
 
-            # Удаляем все связи и термины словаря
-            # TODO: Каждый раз удалять и создавать новые связи не лучший вариант
-            db.exec(delete(Connection).where(Connection.dictionary_id == dict_obj.id))  # type: ignore
-            db.exec(delete(Term).where(Term.dictionary_id == dict_obj.id))  # type: ignore
-
-            # 2) Создаём термины и связи
-            result = _process_terms_and_connections(dict_dto, dict_obj.id, db)
+            # 2) Обрабатываем термины и связи более оптимально
+            result = _process_terms_and_connections_optimized(dict_dto, dict_obj, db)
             if isinstance(result, JSONResponse):
                 return result
 
@@ -115,30 +171,60 @@ async def update_dictionary(dict_dto: DictionaryDTO, dictionary_id: int,
         )
 
 
-def _process_terms_and_connections(dict_dto: DictionaryDTO, dictionary_id: int, db: Session) -> Optional[JSONResponse]:
-    """Общая функция для обработки терминов и связей словаря."""
-    old_id_to_new_id = {}  # {"старый_id": "новый_id_из_БД"}
+def _process_terms_and_connections_optimized(
+        dict_dto: DictionaryDTO,
+        dictionary: Type[Dictionary],
+        db: Session
+) -> Optional[JSONResponse]:
+    """Оптимизированная функция для обработки терминов и связей словаря."""
+    # Получаем текущие термины и связи из БД
+    existing_terms = {term.id: term for term in dictionary.terms}
+    existing_connections = {
+        (conn.from_term_id, conn.to_term_id): conn
+        for conn in dictionary.connections
+    }
 
+    # Словарь для маппинга старых ID (из DTO) в новые ID (из БД)
+    old_id_to_new_id = {}
+
+    # Обрабатываем термины
     for term_dto in dict_dto.phrases:
-        old_id = term_dto.id
-        t = Term(
-            dictionary_id=dictionary_id,
-            phrase_type=term_dto.phrase_type,
-            text=term_dto.text,
-            type=term_dto.type,
-            tfidf=term_dto.tfidf,
-            hidden=term_dto.hidden
-        )
-        db.add(t)
-        db.flush()
+        if term_dto.id and term_dto.id in existing_terms:
+            # Обновляем существующий термин
+            term = existing_terms[term_dto.id]
+            term.phrase_type = term_dto.phrase_type
+            term.text = term_dto.text
+            term.type = term_dto.type
+            term.tfidf = term_dto.tfidf
+            term.hidden = term_dto.hidden
+            db.add(term)
+            old_id_to_new_id[term_dto.id] = term.id
+            # Удаляем из словаря, чтобы оставить только термины для удаления
+            existing_terms.pop(term_dto.id)
+        else:
+            # Создаем новый термин
+            term = Term(
+                dictionary_id=dictionary.id,
+                phrase_type=term_dto.phrase_type,
+                text=term_dto.text,
+                type=term_dto.type,
+                tfidf=term_dto.tfidf,
+                hidden=term_dto.hidden
+            )
+            db.add(term)
+            db.flush()
+            if term_dto.id is not None:
+                old_id_to_new_id[term_dto.id] = term.id
 
-        if old_id is not None:
-            old_id_to_new_id[old_id] = t.id
+    # Удаляем оставшиеся термины (которые не пришли в DTO)
+    for term_id in existing_terms:
+        db.delete(existing_terms[term_id])
 
-    # Шаг 2: Создаем связи
+    # Обрабатываем связи
+    new_connections = set()
     for conn in dict_dto.connections:
-        from_id = old_id_to_new_id.get(conn.from_id)
-        to_id = old_id_to_new_id.get(conn.to_id)
+        from_id = old_id_to_new_id.get(conn.from_id, conn.from_id)
+        to_id = old_id_to_new_id.get(conn.to_id, conn.to_id)
 
         if not from_id or not to_id:
             return JSONResponse(
@@ -149,12 +235,24 @@ def _process_terms_and_connections(dict_dto: DictionaryDTO, dictionary_id: int, 
                 }
             )
 
-        c = Connection(
-            dictionary_id=dictionary_id,
-            from_term_id=from_id,
-            to_term_id=to_id,
-        )
-        db.add(c)
+        connection_key = (from_id, to_id)
+        new_connections.add(connection_key)
+
+        if connection_key not in existing_connections:
+            # Создаем новую связь
+            c = Connection(
+                dictionary_id=dictionary.id,
+                from_term_id=from_id,
+                to_term_id=to_id,
+            )
+            db.add(c)
+        else:
+            # Связь уже существует - оставляем как есть
+            existing_connections.pop(connection_key)
+
+    # Удаляем оставшиеся связи (которые не пришли в DTO)
+    for conn_key in existing_connections:
+        db.delete(existing_connections[conn_key])
 
     return None
 
@@ -175,10 +273,10 @@ async def delete_dictionary(dictionary_id: int, db: Session = Depends(get_sessio
             db.exec(delete(Document).where(Document.dictionary_id == dictionary_id))  # type: ignore
 
             # 2) Удаляем все связи словаря
-            db.exec(delete(Connection).where(Connection.dictionary_id == dictionary_id))    # type: ignore
+            db.exec(delete(Connection).where(Connection.dictionary_id == dictionary_id))  # type: ignore
 
             # 3) Удаляем все термины словаря
-            db.exec(delete(Term).where(Term.dictionary_id == dictionary_id))    # type: ignore
+            db.exec(delete(Term).where(Term.dictionary_id == dictionary_id))  # type: ignore
 
             # 4) Удаляем сам словарь
             db.delete(dict_obj)
