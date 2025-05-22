@@ -12,7 +12,7 @@ import starlette.status as status
 
 from database import get_session
 from src.routers.dto import DictionaryDTO, DictionaryShortDTO
-from src.database.models import Dictionary, Term, Connection, PhraseType
+from src.database.models import Dictionary, Term, Connection, PhraseType, Document
 from src.input_text_worker.functions import get_json_hash
 from config import ANALYSIS_DIR, logger
 
@@ -53,7 +53,12 @@ async def save_dictionary(dict_dto: DictionaryDTO, db: Session = Depends(get_ses
             db.add(dict_obj)
             db.flush()
 
-            # 2) Создаём термины и связи
+            # 2) Создаём документ с исходным текстом
+            document_obj = Document(content=dict_dto.document_text, dictionary_id=dict_obj.id)
+            db.add(document_obj)
+            db.flush()
+
+            # 3) Создаём термины и связи
             result = _process_terms_and_connections(dict_dto, dict_obj.id, db)
             if isinstance(result, JSONResponse):
                 return result
@@ -83,7 +88,16 @@ async def update_dictionary(dict_dto: DictionaryDTO, dictionary_id: int,
                     content={"success": False, "message": "Словарь не найден"}
                 )
 
+            # Обновляем свойства словаря
+            # При обновлении текст документа не меняем
+            dict_obj.name = dict_dto.name
+            dict_obj.tfidf_range = dict_dto.tfidf_range
+
+            db.add(dict_obj)
+            db.flush()
+
             # Удаляем все связи и термины словаря
+            # TODO: Каждый раз удалять и создавать новые связи не лучший вариант
             db.exec(delete(Connection).where(Connection.dictionary_id == dict_obj.id))  # type: ignore
             db.exec(delete(Term).where(Term.dictionary_id == dict_obj.id))  # type: ignore
 
@@ -157,6 +171,9 @@ async def delete_dictionary(dictionary_id: int, db: Session = Depends(get_sessio
                     content={"success": False, "message": "Словарь не найден"}
                 )
 
+            # 2) Удаляем связанные документы
+            db.exec(delete(Document).where(Document.dictionary_id == dictionary_id))  # type: ignore
+
             # 2) Удаляем все связи словаря
             db.exec(delete(Connection).where(Connection.dictionary_id == dictionary_id))    # type: ignore
 
@@ -224,6 +241,19 @@ async def merge_dictionaries(
                     content={"success": False, "message": "Целевой словарь не найден"}
                 )
 
+            # Добавляем текстовый документ к словарю в который сливаем
+            if source_dict_data.id:
+                existing_docs = db.exec(
+                    select(Document).where(Document.dictionary_id == source_dict_data.id)
+                ).all()
+                for existing_doc in existing_docs:
+                    existing_doc.dictionary_id = target_dict.id
+                    db.add(existing_doc)
+            else:
+                document_obj = Document(content=source_dict_data.document_text, dictionary_id=target_dict_id)
+                db.add(document_obj)
+            db.flush()
+
             # Умное слияние терминов - учитываем существование в базе
             existing_terms = db.exec(
                 select(Term).where(Term.dictionary_id == target_dict_id)
@@ -272,8 +302,8 @@ async def merge_dictionaries(
                 db.add(c)
 
             # Удаление исходного словаря, если есть
-            if source_dict_data.fileId:
-                source_dict_obj = db.get(Dictionary, source_dict_data.fileId)
+            if source_dict_data.id:
+                source_dict_obj = db.get(Dictionary, source_dict_data.id)
                 if source_dict_obj:
                     db.exec(delete(Connection).where(Connection.dictionary_id == source_dict_obj.id))  # type: ignore
                     db.exec(delete(Term).where(Term.dictionary_id == source_dict_obj.id))  # type: ignore

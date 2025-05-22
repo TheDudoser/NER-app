@@ -21,7 +21,7 @@
                 <div class="card-body">
                     <form action="{{ url_for('analyze_text') }}" method="post" enctype="multipart/form-data">
                         <h5 class="card-title">Введите текст</h5>
-                        <small class="text-muted">Для лучшего выделения ключевых (аспектных) терминов рекомендуется
+                        <small class="text-muted">Для лучшего выделения именованных сущностей рекомендуется
                             подгружать тексты одной тематики.
                             <br>Если ваш текст разбит на главы - грузите каждую главу по отдельности.</small>
                         <textarea id="textInput" name="text" class="form-control mb-3" rows="8"

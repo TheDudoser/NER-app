@@ -2,13 +2,14 @@ import json
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, UploadFile, Form, File, Depends
+from fastapi import APIRouter, UploadFile, Form, File, Depends, Query
 from sqlmodel import Session, select
 from starlette import status
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
 from starlette.templating import Jinja2Templates
 
+from src.analysis.tfidf import search_phrases_with_tfidf, search_sentences_in_text_with_tfidf
 from config import logger, ANALYSIS_DIR
 from database import get_session
 from src.database.models import Dictionary, PhraseType
@@ -20,7 +21,8 @@ templates = Jinja2Templates(directory="templates")
 phrase_extractor = PhraseExtractor()
 
 # Фильтр для форматирования даты
-templates.env.filters["datetimeformat"] = lambda value: datetime.fromtimestamp(value).strftime('%d.%m.%Y %H:%M')
+templates.env.filters["datetimeformat"] = lambda value: value.strftime('%H:%M %d.%m.%Y')
+templates.env.globals['PhraseType'] = PhraseType
 
 
 # TODO: Повыносить логику работы с данными в сервисы
@@ -110,7 +112,8 @@ async def create_dictionary(request: Request, analysis_file_id: str) -> HTMLResp
         return templates.TemplateResponse("dictionary.html.jinja", {
             "request": request,
             "phrases": phrases,
-            "file_id": analysis_file_id
+            "file_id": analysis_file_id,
+            "text": analysis_data['text']
         })
     except Exception as e:
         logger.error(msg=f"Error loading analysis: {str(e)}", exc_info=True)
@@ -175,6 +178,7 @@ async def edit_dictionary(request: Request, dictionary_id: int, db: Session = De
             {'from': conn.from_term_id, 'to': conn.to_term_id}
             for conn in dictionary.connections
         ]
+        # TODO: dictionary_data можно будет упростить или вовсе избавиться
         # Собираем итоговый словарь для шаблона
         dictionary_data = {
             'id': dictionary.id,
@@ -203,42 +207,52 @@ async def edit_dictionary(request: Request, dictionary_id: int, db: Session = De
 
 
 @views_router.get("/search", name="search")
-async def search(request: Request) -> HTMLResponse:
-    # TODO: Временно прибил гвоздями результаты поиска
+async def search(
+        request: Request,
+        query: Optional[str] = Query(None),
+        db: Session = Depends(get_session)
+) -> HTMLResponse:
+    result = []
+    if (query is not None) and (query != ""):
+        dictionaries = db.exec(
+            select(Dictionary)
+            .order_by(Dictionary.updated_at)
+            .limit(3)
+        ).all()
+
+        for dictionary in dictionaries:
+            dict_entry = {
+                'dictionary': dictionary,
+                'terms': []
+            }
+
+            # 1. Ищем все подходящие термины.
+            # Вытягивает только не скрытые термины.
+            #   Можно было бы сделать это в запросе, но я так и не разобрался как нормально это сделать...
+            dict_terms = [t for t in dictionary.terms if t.hidden is False]
+            terms_with_sims = search_phrases_with_tfidf(query=query, phrases=dict_terms)
+            print(terms_with_sims)
+
+            for term, sim in terms_with_sims:
+                term_entry = {
+                    'term': term,
+                    'similarity': sim,
+                    'sentences': []
+                }
+                # 2. Поиск термина во всех текстах словаря
+                for document in dictionary.documents:
+                    if document.content == '':
+                        continue
+                    sentences = search_sentences_in_text_with_tfidf(
+                        query=term.text,
+                        text=document.content
+                    )
+                    term_entry['sentences'] = term_entry['sentences'] + sentences
+                dict_entry['terms'].append(term_entry)
+            result.append(dict_entry)
+
+        print(result)
     return templates.TemplateResponse("search.html.jinja", {
         "request": request,
-        "search_results": [
-        {
-            "name": "Словарь по искусственному интеллекту",
-            "tfidf_range": "0.4-0.9",
-            "matches": [
-                {"sentence": "Нейронные сети используются для глубокого обучения.", "accuracy": 0.87},
-                {"sentence": "Машинное обучение - важный раздел ИИ.", "accuracy": 0.78},
-                {"sentence": "Обработка естественного языка (NLP) применяется в чат-ботах.", "accuracy": 0.65}
-            ],
-            "term": {
-                "synonyms": ["AI", "Искусственный разум", "Машинный интеллект"],
-                "definitions": [
-                    "Наука и технология создания интеллектуальных машин",
-                    "Способность компьютера имитировать человеческое мышление"
-                ]
-            }
-        },
-        {
-            "name": "Медицинский словарь",
-            "tfidf_range": "0.3-0.8",
-            "matches": [
-                {"sentence": "Артериальная гипертензия требует системного лечения.", "accuracy": 0.92},
-                {"sentence": "Диагностика проводится по клиническим рекомендациям.", "accuracy": 0.85},
-                {"sentence": "Фармакотерапия включает несколько групп препаратов.", "accuracy": 0.73}
-            ],
-            "term": {
-                "synonyms": ["Медтермины", "Клиническая лексика"],
-                "definitions": [
-                    "Совокупность терминов, используемых в медицинской практике",
-                    "Специализированная лексика для описания болезней и лечения"
-                ]
-            }
-        }
-    ]
+        "search_results": result
     })

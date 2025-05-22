@@ -3,6 +3,16 @@
 {% block head %}
     {{ super() }}
     <link href="/public/css/search.css" rel="stylesheet">
+    <style>
+            .connection-type {
+            font-weight: bold;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+        .connection-list {
+            margin-left: 20px;
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
@@ -15,12 +25,9 @@
 
                         <form action="/search" method="get">
                             <div class="mb-3">
-                                <input type="text" id="searchTopic" name="topic" class="form-control"
-                                       placeholder="Введите тематику для поиска" required>
-                            </div>
-                            <div class="mb-3">
                                 <input type="text" id="searchQuery" name="query" class="form-control"
-                                       placeholder="Введите слово или фразу для поиска" required>
+                                       placeholder="Введите слово или фразу для поиска"
+                                       value="{{ request.query_params.get('query', '') }}">
                             </div>
 
                             <button type="submit" class="btn btn-primary search-btn w-100">
@@ -38,38 +45,60 @@
                 <div class="col-md-8">
                     <h4 class="mb-3">Результаты поиска</h4>
 
-                    {% for dictionary in search_results %}
-                        <div class="card result-card">
+                    {% for dict_entry in search_results %}
+                        <div class="card result-card mb-4">
                             <div class="card-body">
-                                <h5 class="text-primary mb-3">
-                                    {{ dictionary.name }}
-                                    <small class="text-muted">(Точность: {{ dictionary.tfidf_range }})</small>
-                                </h5>
+                                <h4 class="text-primary mb-3">
+                                    Словарь "{{ dict_entry.dictionary.name }}"
+                                </h4>
 
-                                <div class="mb-3">
-                                    <h6>Найденные совпадения:</h6>
-                                    {% for match in dictionary.matches %}
-                                        <div class="match-item d-flex justify-content-between">
-                                            <div>{{ match.sentence }}</div>
-                                            <span class="accuracy-badge">{{ match.accuracy|round(2) }}</span>
+                                {% if dict_entry.terms %}
+                                    {% for term_entry in dict_entry.terms %}
+                                        <div class="mb-4">
+                                            <h5>
+                                                Термин: {{ term_entry.term.text }}
+                                                <small class="text-muted">(Схожесть: {{ term_entry.similarity|round(2) }})</small>
+                                            </h5>
+
+                                            {% if term_entry.sentences %}
+                                                <div class="mb-3">
+                                                    <h6>Найденные предложения:</h6>
+                                                    {% for sentence in term_entry.sentences %}
+                                                        <div class="match-item d-flex justify-content-between mb-2">
+                                                            <div>{{ sentence|safe }}</div>
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+
+                                                {% set to_connections = term_entry.term.to_connections | default([], true) %}
+                                                {% set from_connections = [] %}
+                                                {% set connections = to_connections + from_connections %}
+                                                {% if connections %}
+                                                    <div class="connection-type">Связанные словосочетания:</div>
+                                                    <ul class="connection-list">
+                                                        {% for conn in connections %}
+                                                            <li>
+                                                                {{ conn.from_term.text }}
+                                                                {% if conn.from_term.phrase_type.value == PhraseType["term"].value %}
+                                                                    <span class="badge bg-info">{{ PhraseType["synonym"].get_desc() }}</span>
+                                                                {% else %}
+                                                                    <span class="badge bg-info">{{ conn.from_term.phrase_type.get_desc() }}</span>
+                                                                {% endif %}
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                {% endif %}
+                                                <hr>
+                                            {% else %}
+                                                <div class="alert alert-info">Нет найденных предложений для этого
+                                                    термина
+                                                </div>
+                                            {% endif %}
                                         </div>
                                     {% endfor %}
-                                </div>
-
-                                <div class="bg-light p-3 rounded">
-                                    <div class="mb-2">
-                                        <strong>Синонимы:</strong>
-                                        {{ dictionary.term.synonyms|join(", ") }}
-                                    </div>
-                                    <div>
-                                        <strong>Определения:</strong>
-                                        <ol class="mb-0">
-                                            {% for definition in dictionary.term.definitions %}
-                                                <li>{{ definition }}</li>
-                                            {% endfor %}
-                                        </ol>
-                                    </div>
-                                </div>
+                                {% else %}
+                                    <div class="alert alert-info">Не найдено терминов, соответствующих запросу</div>
+                                {% endif %}
                             </div>
                         </div>
                     {% endfor %}

@@ -30,7 +30,7 @@
                             </td>
                             <td data-label="Словосочетания">{{ dictionary.terms_count }}</td>
                             <td data-label="Связи">{{ dictionary.connections_count }}</td>
-                            <td data-label="Дата и время создания">{{ dictionary.created_at.strftime('%H:%M:%S %d.%m.%Y') }}</td>
+                            <td data-label="Дата и время создания">{{ dictionary.created_at|datetimeformat }}</td>
                             <td data-label="Действия">
                                 <div class="btn-group btn-group-sm">
                                     <a href="{{ url_for('edit_dictionary', dictionary_id=dictionary.id) }}" class="btn btn-outline-primary">

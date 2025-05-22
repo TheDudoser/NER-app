@@ -102,7 +102,7 @@
                     {% import 'components/phrase_list.html.jinja' as phrase_list %}
                     <div class="col-md-4">
                         {{ phrase_list.get(
-                            name_list="Ключевые фразы",
+                            name_list="Именованные сущности",
                             phrases=dictionary_data.phrases if dictionary is defined else phrases,
                             style_id="phrases-column",
                             show_subname=true) }}
@@ -139,6 +139,9 @@
     <script>
         {% if dictionary_data %}
             window.DICTIONARY_DATA = {{ dictionary_data|tojson }};
+        {% endif %}
+        {% if text %}
+            window.TEXT_CONTENT = {{ text|tojson|safe }};
         {% endif %}
     </script>
 {% endblock %}
