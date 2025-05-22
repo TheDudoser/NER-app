@@ -2,13 +2,15 @@ document.addEventListener('DOMContentLoaded', function () {
     // Получаем элементы колонок
     const columns = document.querySelectorAll('.drop-column');
     let draggedItem = null;
-    let connectionMode = false;
-    let sourceElement = null;
     let connectionLines = [];
 
     // Выбор порога if-idf
     const range = document.getElementById('tfidfRange');
     const number = document.getElementById('tfidfValue');
+
+    let prevSelectedTerm = null;
+    let selectedTerm = null;
+    let selectedNonTerms = [];
 
     // Добавляем обработчики событий для перетаскивания
     columns.forEach(column => {
@@ -42,24 +44,69 @@ document.addEventListener('DOMContentLoaded', function () {
                     this.appendChild(draggedItem);
                 }
 
-                // Добавляем кнопку соединения, если элемент перемещен не в phrases-column
+                // Включаем showConnectedMode, если элемент перемещен не в phrases-column
                 if (this.id !== 'phrases-column') {
-                    // Проверяем, нет ли уже кнопки соединения
-                    if (!draggedItem.querySelector('.connect-svg')) {
-                        addConnectButton(draggedItem);
-                    }
+                    showConnectedMode(draggedItem);
                 } else {
-                    // Если элемент перемещен обратно в phrases-column, удаляем кнопку соединения
-                    const existingButton = draggedItem.querySelector('.connect-svg');
-                    if (existingButton) {
-                        existingButton.remove();
-                    }
+                    draggedItem.classList.remove('connected');
                 }
 
                 updateAllConnectionLines();
             }
         });
     });
+
+    function showConnectedMode(card) {
+        if (card.parentElement.id === 'terms-column') {
+            prevSelectedTerm = selectedTerm;
+            if (selectedTerm !== null) {
+                prevSelectedTerm.classList.remove('connected');
+            }
+            selectedTerm = card;
+            selectedTerm.classList.add('connected');
+        } else {
+            selectedNonTerms.push(card);
+            card.classList.add('connected');
+        }
+
+        if (selectedTerm && card !== selectedTerm) {
+            createConnection(selectedTerm, card);
+            selectedNonTerms = [];
+            // prevSelectedTerm = null;
+        } else if (selectedNonTerms.length > 0 && selectedTerm === card && prevSelectedTerm === null) {
+            for (let nonTerm of selectedNonTerms) {
+                createConnection(card, nonTerm);
+            }
+        }
+
+        // 3. Отображаем только карточки, связанные с новым термином,
+        //    остальные скрываем в ненужных колонках (кроме phrases-column)
+        document.querySelectorAll('.drop-column:not(#phrases-column):not(#terms-column) .phrase-card')
+            .forEach(_ => {
+                connectionLines.forEach(conn => {
+                    const isLinked = conn.fromElement === selectedTerm;
+                    conn.line.style.display = isLinked ? 'block' : 'none';
+                    conn.toElement.style.display = isLinked ? 'block' : 'none';
+
+                    if (isLinked) {
+                        conn.fromElement.classList.add('connected');
+                    } else {
+                        conn.fromElement.classList.remove('connected');
+                    }
+                });
+            });
+
+        // 4. Обновляем положение видимых линий
+        updateAllConnectionLines();
+    }
+
+    // Вешаем обработчик клика на все термы
+    document.getElementById('terms-column')
+        .addEventListener('click', event => {
+            const card = event.target.closest('.phrase-card');
+            if (!card) return;
+            showConnectedMode(card);
+        });
 
     // Обработчики для элементов, которые можно перетаскивать
     document.addEventListener('dragstart', function (e) {
@@ -106,68 +153,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Добавляем кнопки соединения к существующим карточкам
-    document.querySelectorAll('.phrase-card').forEach(card => {
-        if (card.parentElement.id !== 'phrases-column') {
-            addConnectButton(card);
-        }
-    });
-
-    // Функция для создания кнопки соединения
-    function addConnectButton(card) {
-        // Проверяем, нет ли уже кнопки соединения
-        if (card.querySelector('.connect-svg')) {
-            return;
-        }
-
-        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        const path1 = document.createElementNS("http://www.w3.org/2000/svg", 'path');
-        const path2 = document.createElementNS("http://www.w3.org/2000/svg", 'path');
-
-        svg.classList.add('connect-svg');
-        svg.setAttribute('viewbox', '0 0 16 16');
-        svg.setAttribute('width', '16px');
-        svg.setAttribute('height', '16px');
-        svg.setAttribute('fill', 'currentColor');
-
-        path1.setAttribute('d', 'M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16');
-        path2.setAttribute('d', 'M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4');
-
-        svg.appendChild(path1);
-        svg.appendChild(path2);
-
-        svg.addEventListener('click', function (e) {
-            e.stopPropagation();
-            toggleConnectionMode(card);
-        });
-        card.appendChild(svg);
-    }
-
-    // Функция для переключения режима соединения
-    function toggleConnectionMode(card) {
-        if (connectionMode && sourceElement === card) {
-            // Выходим из режима соединения
-            connectionMode = false;
-            // sourceElement.classList.remove('connected');
-            sourceElement = null;
-            document.body.classList.remove('connection-mode');
-        } else if (!connectionMode) {
-            // Входим в режим соединения
-            connectionMode = true;
-            sourceElement = card;
-            document.body.classList.add('connection-mode');
-            card.classList.add('connected');
-        } else {
-            // Создаем соединение
-            createConnection(sourceElement, card);
-            // Выходим из режима соединения
-            connectionMode = false;
-            // sourceElement.classList.remove('connected');
-            sourceElement = null;
-            document.body.classList.remove('connection-mode');
-        }
-    }
-
     // Функция для создания соединения
     function createConnection(fromElement, toElement) {
         // Проверяем, что элементы в разных колонках
@@ -181,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Проверяем, что ни один из элементов не в колонке phrases-column
         if (fromColumn.id === 'phrases-column' || toColumn.id === 'phrases-column') {
-            alert('Элементы из колонки "Фразы" нельзя связывать с другими элементами');
+            alert('Элементы из этой колонки нельзя связывать с другими элементами');
             return;
         }
 
@@ -200,16 +185,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const line = document.createElement('div');
         line.className = 'connection-line';
         fromColumn.appendChild(line)
-
-        // Добавляем кнопку удаления
-        const deleteBtn = document.createElement('div');
-        deleteBtn.className = 'delete-connection';
-        deleteBtn.innerHTML = '&times;';
-        deleteBtn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            removeConnection(line);
-        });
-        line.appendChild(deleteBtn);
 
         document.querySelector('.connection-container').appendChild(line);
 
@@ -343,26 +318,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Обработчик клика в режиме соединения
-    document.addEventListener('click', function (e) {
-        if (!connectionMode || !sourceElement) return;
-
-        const targetCard = e.target.closest('.phrase-card');
-        if (targetCard && targetCard !== sourceElement) {
-            // Проверяем, что ни sourceElement, ни targetCard не в колонке phrases-column
-            const sourceColumn = sourceElement.closest('.drop-column');
-            const targetColumn = targetCard.closest('.drop-column');
-
-            if (sourceColumn.id !== 'phrases-column' && targetColumn.id !== 'phrases-column') {
-                createConnection(sourceElement, targetCard);
-                toggleConnectionMode(sourceElement); // Выходим из режима соединения
-            } else {
-                alert('Элементы из колонки "Именованные сущности" нельзя связывать с другими элементами');
-                toggleConnectionMode(sourceElement); // Выходим из режима соединения
-            }
-        }
-    });
-
     // Обновляем позиции линий при изменении размера окна
     window.addEventListener('resize', function () {
         updateAllConnectionLines();
@@ -406,6 +361,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Функция для загрузки данных словаря
     function loadDictionaryData(data) {
+        // Обновляем фильтр по tf-idf
+        number.value = data.tfidf_range;
+        range.value = data.tfidf_range;
+        applyTfidfFilter(data.tfidf_range);
+
         // Восстанавливаем соединения
         if (data.connections) {
             data.connections.forEach(conn => {
@@ -418,10 +378,12 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
-        // Обновляем фильтр по tf-idf
-        number.value = data.tfidf_range;
-        range.value = data.tfidf_range;
-        applyTfidfFilter(data.tfidf_range);
+        const termsCol = document.getElementById('terms-column');
+        const lastTerm = termsCol.querySelector('.phrase-card:last-child');
+        document.getElementById('terms-column')
+        if (lastTerm) {
+            showConnectedMode(lastTerm);
+        }
     }
 
     // Экспорт словаря
@@ -552,20 +514,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 const modal = bootstrap.Modal.getInstance(document.getElementById('addToDictionaryModal'));
                 modal.hide();
             });
-    });
-
-    // Удаление всех связей
-    document.getElementById('clearConnectionsBtn').addEventListener('click', function () {
-        // Удаляем все линии соединений
-        document.querySelectorAll('.connection-line').forEach(line => line.remove());
-
-        // Удаляем класс connected со всех карточек
-        document.querySelectorAll('.phrase-card.connected').forEach(card => {
-            card.classList.remove('connected');
-        });
-
-        // Очищаем массив соединений
-        connectionLines = [];
     });
 
     // Проставление связей при редактировании
