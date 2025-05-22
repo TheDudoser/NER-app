@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Получаем элементы колонок
     const columns = document.querySelectorAll('.drop-column');
     let draggedItem = null;
-    let connectionLines = [];
+    let globalConnections = [];
 
     // Выбор порога if-idf
     const range = document.getElementById('tfidfRange');
@@ -50,8 +50,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     draggedItem.classList.remove('connected');
                 }
-
-                updateAllConnectionLines();
             }
         });
     });
@@ -83,9 +81,8 @@ document.addEventListener('DOMContentLoaded', function () {
         //    остальные скрываем в ненужных колонках (кроме phrases-column)
         document.querySelectorAll('.drop-column:not(#phrases-column):not(#terms-column) .phrase-card')
             .forEach(_ => {
-                connectionLines.forEach(conn => {
+                globalConnections.forEach(conn => {
                     const isLinked = conn.fromElement === selectedTerm;
-                    conn.line.style.display = isLinked ? 'block' : 'none';
                     conn.toElement.style.display = isLinked ? 'block' : 'none';
 
                     if (isLinked) {
@@ -95,9 +92,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 });
             });
-
-        // 4. Обновляем положение видимых линий
-        updateAllConnectionLines();
     }
 
     // Вешаем обработчик клика на все термы
@@ -113,29 +107,27 @@ document.addEventListener('DOMContentLoaded', function () {
         if (e.target.classList.contains('draggable')) {
             draggedItem = e.target;
 
-            const connectionsToRemove = connectionLines.filter(conn =>
+            const connectionsToRemove = globalConnections.filter(conn =>
                 conn.from === draggedItem.dataset.id || conn.to === draggedItem.dataset.id
             );
 
             // Удаляем соединения и обновляем статус connected
             connectionsToRemove.forEach(conn => {
-                conn.line.remove();
-
                 // Проверяем оставшиеся связи для fromElement
-                const hasOtherFrom = connectionLines.some(c =>
+                const hasOtherFrom = globalConnections.some(c =>
                     c.from === conn.fromElement.dataset.id && c !== conn
                 );
                 if (!hasOtherFrom) conn.fromElement.classList.remove('connected');
 
                 // Проверяем оставшиеся связи для toElement
-                const hasOtherTo = connectionLines.some(c =>
+                const hasOtherTo = globalConnections.some(c =>
                     c.to === conn.toElement.dataset.id && c !== conn
                 );
                 if (!hasOtherTo) conn.toElement.classList.remove('connected');
             });
 
             // Фильтруем массив соединений
-            connectionLines = connectionLines.filter(conn =>
+            globalConnections = globalConnections.filter(conn =>
                 !(conn.from === draggedItem.dataset.id || conn.to === draggedItem.dataset.id)
             );
 
@@ -148,7 +140,6 @@ document.addEventListener('DOMContentLoaded', function () {
             setTimeout(() => {
                 e.target.style.display = 'block';
                 draggedItem = null;
-                updateAllConnectionLines(); // Обновляем оставшиеся соединения
             }, 0);
         }
     });
@@ -171,7 +162,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // Проверяем, нет ли уже такого соединения
-        const existingConnection = connectionLines.find(conn =>
+        const existingConnection = globalConnections.find(conn =>
             (conn.from === fromElement.dataset.id && conn.to === toElement.dataset.id) ||
             (conn.from === toElement.dataset.id && conn.to === fromElement.dataset.id)
         );
@@ -181,147 +172,20 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Остальной код функции остается без изменений
-        const line = document.createElement('div');
-        line.className = 'connection-line';
-        fromColumn.appendChild(line)
-
-        document.querySelector('.connection-container').appendChild(line);
-
-        // Обновляем позицию линии
-        updateConnectionLine(line, fromElement, toElement);
-
         // Сохраняем информацию о соединении
         const connection = {
             from: fromElement.dataset.id,
             to: toElement.dataset.id,
-            line: line,
             fromElement: fromElement,
             toElement: toElement
         };
 
-        connectionLines.push(connection);
+        globalConnections.push(connection);
 
         // Добавляем классы для визуального отображения связи
         fromElement.classList.add('connected');
         toElement.classList.add('connected');
     }
-
-    // Функция для удаления соединения
-    function removeConnection(line) {
-        const connectionIndex = connectionLines.findIndex(conn => conn.line === line);
-        if (connectionIndex !== -1) {
-            const connection = connectionLines[connectionIndex];
-            connection.fromElement.classList.remove('connected');
-            connection.toElement.classList.remove('connected');
-            line.remove();
-            connectionLines.splice(connectionIndex, 1);
-        }
-    }
-
-    function updateConnectionLine(line, fromElement, toElement) {
-        const fromRect = fromElement.getBoundingClientRect();
-        const toRect = toElement.getBoundingClientRect();
-        const containerRect = line.parentElement.getBoundingClientRect();
-
-        // Определяем центр каждого элемента
-        const fromCenter = {
-            x: (fromRect.left + fromRect.right) / 2 - containerRect.left,
-            y: (fromRect.top + fromRect.bottom) / 2 - containerRect.top
-        };
-        const toCenter = {
-            x: (toRect.left + toRect.right) / 2 - containerRect.left,
-            y: (toRect.top + toRect.bottom) / 2 - containerRect.top
-        };
-
-        // Определяем направление от from к to
-        const dx = toCenter.x - fromCenter.x;
-        const dy = toCenter.y - fromCenter.y;
-
-        // Вычисляем угол между центрами
-        const angle = Math.atan2(dy, dx);
-
-        // Находим точки пересечения линии с границами элементов
-        const fromPoint = getIntersectionPoint(fromRect, containerRect, angle);
-        const toPoint = getIntersectionPoint(toRect, containerRect, -Math.PI + angle);
-
-        // Вычисляем длину и угол для линии
-        const length = Math.sqrt(Math.pow(toPoint.x - fromPoint.x, 2) + Math.pow(toPoint.y - fromPoint.y, 2));
-        const lineAngle = Math.atan2(toPoint.y - fromPoint.y, toPoint.x - fromPoint.x) * 180 / Math.PI;
-
-        // Устанавливаем стили линии
-        line.style.width = `${length}px`;
-        line.style.left = `${fromPoint.x}px`;
-        line.style.top = `${fromPoint.y}px`;
-        line.style.transform = `rotate(${lineAngle}deg)`;
-        line.style.zIndex = '1';
-    }
-
-    // Функция для нахождения точки пересечения линии с границей элемента
-    function getIntersectionPoint(rect, containerRect, angle) {
-        const center = {
-            x: (rect.left + rect.right) / 2 - containerRect.left,
-            y: (rect.top + rect.bottom) / 2 - containerRect.top
-        };
-
-        // Полуширина и полувысота элемента
-        const halfWidth = rect.width / 2;
-        const halfHeight = rect.height / 2;
-
-        // Вычисляем точку пересечения с границей прямоугольника
-        let x, y;
-
-        // Определяем квадрант угла
-        const absAngle = Math.abs(angle);
-        const tanAngle = Math.tan(absAngle);
-
-        // Вычисляем точку пересечения в зависимости от угла
-        if (absAngle <= Math.PI / 4 || absAngle > 3 * Math.PI / 4) {
-            // Пересекаем правую или левую границу
-            const signX = Math.cos(angle) > 0 ? 1 : -1;
-            x = center.x + signX * halfWidth;
-            y = center.y + signX * halfWidth * tanAngle * (Math.sin(angle) > 0 ? 1 : -1);
-
-            // Проверяем, не выходит ли y за границы
-            if (y > center.y + halfHeight) {
-                y = center.y + halfHeight;
-                x = center.x + (y - center.y) / tanAngle;
-            } else if (y < center.y - halfHeight) {
-                y = center.y - halfHeight;
-                x = center.x - (y - center.y) / tanAngle;
-            }
-        } else {
-            // Пересекаем верхнюю или нижнюю границу
-            const signY = Math.sin(angle) > 0 ? 1 : -1;
-            y = center.y + signY * halfHeight;
-            x = center.x + signY * halfHeight / tanAngle * (Math.cos(angle) > 0 ? 1 : -1);
-
-            // Проверяем, не выходит ли x за границы
-            if (x > center.x + halfWidth) {
-                x = center.x + halfWidth;
-                y = center.y + (x - center.x) * tanAngle;
-            } else if (x < center.x - halfWidth) {
-                x = center.x - halfWidth;
-                y = center.y - (x - center.x) * tanAngle;
-            }
-        }
-
-        return {x, y};
-    }
-
-    // Функция для обновления всех линий
-    function updateAllConnectionLines() {
-        connectionLines.forEach(conn => {
-            if (conn.fromElement && conn.toElement) {
-                updateConnectionLine(conn.line, conn.fromElement, conn.toElement);
-            }
-        });
-    }
-
-    // Обновляем позиции линий при изменении размера окна
-    window.addEventListener('resize', function () {
-        updateAllConnectionLines();
-    });
 
     // Функция для получения данных словаря
     function getDictionaryData() {
@@ -350,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return {
             id: fileId,
             phrases: allItems,
-            connections: connectionLines.map(conn => ({
+            connections: globalConnections.map(conn => ({
                 from_id: conn.from,
                 to_id: conn.to
             })),
@@ -546,6 +410,5 @@ document.addEventListener('DOMContentLoaded', function () {
                 card.dataset.hidden = 'false';
             }
         });
-        updateAllConnectionLines();
     }
 });
