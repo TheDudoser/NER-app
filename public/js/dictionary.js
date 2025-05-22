@@ -41,6 +41,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     this.appendChild(draggedItem);
                 }
+
+                // Добавляем кнопку соединения, если элемент перемещен не в phrases-column
+                if (this.id !== 'phrases-column') {
+                    // Проверяем, нет ли уже кнопки соединения
+                    if (!draggedItem.querySelector('.connect-svg')) {
+                        addConnectButton(draggedItem);
+                    }
+                } else {
+                    // Если элемент перемещен обратно в phrases-column, удаляем кнопку соединения
+                    const existingButton = draggedItem.querySelector('.connect-svg');
+                    if (existingButton) {
+                        existingButton.remove();
+                    }
+                }
+
                 updateAllConnectionLines();
             }
         });
@@ -91,22 +106,20 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    document.addEventListener('dragend', function (e) {
-        if (e.target.classList.contains('draggable')) {
-            setTimeout(() => {
-                e.target.style.display = 'block';
-                draggedItem = null;
-            }, 0);
-        }
-    });
-
     // Добавляем кнопки соединения к существующим карточкам
     document.querySelectorAll('.phrase-card').forEach(card => {
-        addConnectButton(card);
+        if (card.parentElement.id !== 'phrases-column') {
+            addConnectButton(card);
+        }
     });
 
     // Функция для создания кнопки соединения
     function addConnectButton(card) {
+        // Проверяем, нет ли уже кнопки соединения
+        if (card.querySelector('.connect-svg')) {
+            return;
+        }
+
         const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         const path1 = document.createElementNS("http://www.w3.org/2000/svg", 'path');
         const path2 = document.createElementNS("http://www.w3.org/2000/svg", 'path');
@@ -166,6 +179,12 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        // Проверяем, что ни один из элементов не в колонке phrases-column
+        if (fromColumn.id === 'phrases-column' || toColumn.id === 'phrases-column') {
+            alert('Элементы из колонки "Фразы" нельзя связывать с другими элементами');
+            return;
+        }
+
         // Проверяем, нет ли уже такого соединения
         const existingConnection = connectionLines.find(conn =>
             (conn.from === fromElement.dataset.id && conn.to === toElement.dataset.id) ||
@@ -177,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Создаем линию
+        // Остальной код функции остается без изменений
         const line = document.createElement('div');
         line.className = 'connection-line';
         fromColumn.appendChild(line)
@@ -330,8 +349,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const targetCard = e.target.closest('.phrase-card');
         if (targetCard && targetCard !== sourceElement) {
-            createConnection(sourceElement, targetCard);
-            toggleConnectionMode(sourceElement); // Выходим из режима соединения
+            // Проверяем, что ни sourceElement, ни targetCard не в колонке phrases-column
+            const sourceColumn = sourceElement.closest('.drop-column');
+            const targetColumn = targetCard.closest('.drop-column');
+
+            if (sourceColumn.id !== 'phrases-column' && targetColumn.id !== 'phrases-column') {
+                createConnection(sourceElement, targetCard);
+                toggleConnectionMode(sourceElement); // Выходим из режима соединения
+            } else {
+                alert('Элементы из колонки "Именованные сущности" нельзя связывать с другими элементами');
+                toggleConnectionMode(sourceElement); // Выходим из режима соединения
+            }
         }
     });
 
