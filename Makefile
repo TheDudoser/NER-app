@@ -3,8 +3,6 @@
 DOCKER_COMPOSE=docker compose
 PYTHON_SERVICE=backend
 
-init: .env install
-
 .env:
 	@cp .env.dist .env
 

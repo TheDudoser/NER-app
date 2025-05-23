@@ -1,0 +1,23 @@
+{% macro get(headerText, helpHeaderText, selectId, confirmAddBtnId) -%}
+    <div class="modal fade" id="addToDictionaryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title">{{ headerText }}</h5>
+                        <small class="text-muted">{{ helpHeaderText|safe }}</small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <select class="form-select" id="{{ selectId }}">
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="confirmAddToDictionaryBtn">Подтвердить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{%- endmacro %}

@@ -6,10 +6,10 @@
     <div id={{ style_id }} class="drop-column">
         {% for phrase in phrases %}
             <div class="phrase-card draggable" draggable="true" data-id="{{ phrase.id }}"
-                 data-tfidf="{{ phrase.tfidf }}" data-type="{{ phrase.pattern_type }}">
-                {{ phrase.phrase }}
+                 data-tfidf="{{ phrase.tfidf }}" data-type="{{ phrase.type }}">
+                {{ phrase.text }}
                 <div class="phrase-info">
-                    <span class="badge bg-secondary">{{ phrase.pattern_type }}</span>
+                    <span class="badge bg-secondary">{{ phrase.type }}</span>
                     <span class="badge bg-primary">{{ "%.3f"|format(phrase.tfidf) }}</span>
                 </div>
             </div>

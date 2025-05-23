@@ -42,7 +42,7 @@ def extract_top_ngrams_with_tfidf(
         top_k: int = 10000
 ) -> List[Tuple[str, float]]:
     # TODO: Надо подумать над разделением по бакетам
-    #  чтобы более усреднённые результаты на разных выборках получать
+    #  чтобы более усреднённые результаты на разных выборках получать (issue #20)
     bound_lemma_analyzer = partial(lemma_analyzer_with_numbers, max_n=ngram_count)
     vectorizer = TfidfVectorizer(
         analyzer=bound_lemma_analyzer,

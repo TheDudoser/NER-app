@@ -24,15 +24,20 @@ if (createDictBtn) {
             phrases: Array.from(document.querySelectorAll('#resultsBody tr')).map(row => {
                 const cells = row.querySelectorAll('td');
                 return {
-                    phrase: cells[2].textContent,
-                    pattern_type: cells[0].textContent,
+                    text: cells[2].textContent,
+                    type: cells[0].textContent,
                     tfidf_score: parseFloat(cells[3].textContent)
                 };
             }),
             total_phrases: parseInt(document.getElementById('totalPhrases').textContent),
-            unique_patterns: parseInt(document.getElementById('uniquePatterns').textContent),
+            unique_phrase_types: parseInt(document.getElementById('uniquePhraseTypes').textContent),
             text: document.getElementById('textInput').value,
         };
+
+        if (analysisData.phrases.length === 0) {
+            alert('Невозможно создать словарь с нулевым кол-ом выделенных словосочетаний');
+            return;
+        }
 
         // Отправляем данные на сервер
         fetch('/api/analysis', {
