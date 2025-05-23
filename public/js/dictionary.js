@@ -255,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const dictionary = getDictionaryData();
         dictionary.name = dictionaryName;
 
-        if (dictionary.id !== undefined) {
+        if (dictionary.id !== null && dictionary.id !== undefined) {
             fetch(`/api/dictionary/${dictionary.id}`, {
                 method: 'PATCH',
                 headers: {
