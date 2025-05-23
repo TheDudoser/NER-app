@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', function () {
     let selectedTerm = null;
     let selectedNonTerms = [];
 
+    // В начале файла добавим переменную для хранения текущего словаря
+    let currentDictionaryId = document.getElementById('dictionary_id')?.textContent || null;
+
     // Добавляем обработчики событий для перетаскивания
     columns.forEach(column => {
         column.addEventListener('dragover', function (e) {
@@ -188,8 +191,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Функция для получения данных словаря
     function getDictionaryData() {
-        let fileId = document.getElementById('file_id')?.textContent;
-
         // Общая функция для обработки элементов колонок
         const processColumn = (elementId, phraseType) =>
             Array.from(document.getElementById(elementId).children)
@@ -211,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function () {
         ];
 
         return {
-            id: fileId,
+            id: currentDictionaryId,
             phrases: allItems,
             connections: globalConnections.map(conn => ({
                 from_id: conn.from,
@@ -222,18 +223,12 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     }
 
-    // Функция для загрузки данных словаря
-    function loadDictionaryData(data) {
-        // Обновляем фильтр по tf-idf
-        number.value = data.tfidf_range;
-        range.value = data.tfidf_range;
-        applyTfidfFilter(data.tfidf_range);
-
+    function loadDictionaryConnections(connections) {
         // Восстанавливаем соединения
-        if (data.connections) {
-            data.connections.forEach(conn => {
-                const fromElement = document.querySelector(`.phrase-card[data-id="${conn.from}"]`);
-                const toElement = document.querySelector(`.phrase-card[data-id="${conn.to}"]`);
+        if (connections) {
+            connections.forEach(conn => {
+                const fromElement = document.querySelector(`.phrase-card[data-id="${conn.from_id}"]`);
+                const toElement = document.querySelector(`.phrase-card[data-id="${conn.to_id}"]`);
 
                 if (fromElement && toElement) {
                     createConnection(fromElement, toElement);
@@ -306,10 +301,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // В начале файла добавим переменную для хранения текущего словаря
-    let currentDictionaryId = document.getElementById('file_id')?.textContent || null;
-
-    // Обработчик кнопки "Пополнить словарь"
+    // Обработчик кнопки "Объединить"
     document.getElementById('addToDictionaryBtn').addEventListener('click', function () {
         fetch('/api/dictionaries')
             .then(response => response.json())
@@ -325,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     select.innerHTML = `
                     <option value="" selected disabled>Выберите словарь...</option>
                     ${dictionaries.map(dict =>
-                        `<option value="${dict.id}">${dict.name}</option>`
+                        `<option value="${dict.id}">${dict.name} (${dict.id})</option>`
                     ).join('')}
                 `;
 
@@ -379,11 +371,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     });
 
-    // Проставление связей при редактировании
-    if (window.DICTIONARY_DATA) {
-        loadDictionaryData(window.DICTIONARY_DATA);
-    }
-
     // Логика работы с порогом ifidf
     range.addEventListener('input', () => {
         number.value = range.value;
@@ -409,5 +396,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 card.dataset.hidden = 'false';
             }
         });
+    }
+
+    applyTfidfFilter(parseFloat(number.value))
+    // Проставление связей и TF-IDF при редактировании
+    if (window.DICTIONARY_CONNECTIONS) {
+        loadDictionaryConnections(window.DICTIONARY_CONNECTIONS);
     }
 });

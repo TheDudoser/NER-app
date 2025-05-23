@@ -75,7 +75,7 @@
                               id="totalPhrases">{{ result_analysis.total_phrases }}</span>
                         словосочетаний
                         <span class="badge bg-success rounded-pill ms-2"
-                              id="uniquePatterns">{{ result_analysis.unique_patterns }}</span> уникальных типов
+                              id="uniquePhraseTypes">{{ result_analysis.unique_phrase_types }}</span> уникальных типов
                     </div>
                     <button class="btn btn-sm btn-outline-primary" type="button" id="createDictionaryBtn">
                         Сформировать словарь
@@ -95,7 +95,7 @@
                         <tbody id="resultsBody">
                         {% for phrase in result_analysis.phrases %}
                             <tr>
-                                <td data-label="Тип"><span class="phrase-type {{ phrase.color }}">{{ phrase.pattern_type }}</span></td>
+                                <td data-label="Тип"><span class="phrase-type {{ phrase.color }}">{{ phrase.type }}</span></td>
                                 <td data-label="Описание">{{ phrase.pattern_description }}</td>
                                 <td data-label="Словосочетание">{{ phrase.phrase }}</td>
                                 <td data-label="TF-IDF">{{ "%.3f"|format(phrase.tfidf_score) }}</td>

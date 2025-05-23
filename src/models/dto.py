@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from typing import List, Optional
 
 
@@ -11,6 +12,7 @@ class TermDTO:
     tfidf: float
     hidden: bool = False
     id: Optional[int] = None
+    head_noun: Optional[str] = None
 
 
 @dataclass
@@ -33,6 +35,6 @@ class DictionaryDTO:
 class DictionaryShortDTO:
     id: int
     name: str
-    created_at: float  # timestamp
+    created_at: datetime | float
     terms_count: int
     connections_count: int

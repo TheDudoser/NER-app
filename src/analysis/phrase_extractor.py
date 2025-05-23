@@ -55,7 +55,7 @@ class PhraseExtractor:
 
             phrase_stats.append({
                 'phrase': phrase,
-                'pattern_type': pattern_type,
+                'type': pattern_type,
                 'pattern_description': PATTERN_DESCRIPTIONS.get(pattern_type, "N/A"),
                 'tfidf_score': tfidf,
                 'length': len(phrase.split())
@@ -67,7 +67,7 @@ class PhraseExtractor:
         return {
             'phrases': phrase_stats,
             'total_phrases': len(phrase_stats),
-            'unique_patterns': len({p['pattern_type'] for p in phrase_stats})
+            'unique_phrase_types': len({p['type'] for p in phrase_stats})
         }
 
     def get_head_noun_lemma(self, phrase: str) -> str:

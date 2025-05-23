@@ -1,0 +1,2 @@
+class InvalidConnDictDTO(Exception):
+    pass
