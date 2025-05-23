@@ -10,9 +10,9 @@
 * python 3.13
 * postgres 17
 
-## Сборка и запуск проекта
+## Запуск проекта
+- `make .env`
 - `docker compose up`
-- `make init`
 
 Проект доступен по http://127.0.0.1
 
