@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.success) {
                         this.closest('tr').remove();
                         showAlert('Словарь успешно удалён', 'success');
+                        setTimeout(() => window.location.reload(), 1500);
                     } else {
                         showAlert('Ошибка при удалении: ' + data.message, 'danger');
                     }

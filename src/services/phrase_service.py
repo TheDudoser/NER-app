@@ -1,13 +1,16 @@
-from typing import List
+from typing import List, Sequence
 
-from src.analysis.phrase_extractor import PhraseExtractor
+from sqlmodel import Session, select
+
+from src.database.models import Term
+from src.analysis.analyser import Analyser
 from src.models.dto import TermDTO
 from src.models.phrase_type import PhraseType
 
 
 class PhraseService:
     def __init__(self):
-        self.phrase_extractor = PhraseExtractor()
+        self.phrase_extractor = Analyser()
 
     def get_terms_by_analysis_data(self, analysis_data) -> List[TermDTO]:
         phrases = [
@@ -26,3 +29,12 @@ class PhraseService:
         phrases.sort(key=lambda x: (x.head_noun, x.text))
 
         return phrases
+
+    @staticmethod
+    def get_terms_without_phrases(db: Session, dict_id: int) -> Sequence[Term]:
+        return db.exec(
+            select(Term)
+            .where(Term.dictionary_id == dict_id)
+            .where(Term.hidden == False)
+            .where(Term.phrase_type != PhraseType.phrase)
+        ).all()

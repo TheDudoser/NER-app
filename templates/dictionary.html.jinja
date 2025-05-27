@@ -16,6 +16,7 @@
     <div class="card mb-4">
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
+                <div style="display: none" id="analysis_result_id">{{ analysis_result_id }}</div>
                 <div>
                     <h5 class="card-title mb-0">
                         {% if dictionary is defined and dictionary.name %}
@@ -116,9 +117,6 @@
     <script>
         {% if connections %}
             window.DICTIONARY_CONNECTIONS = {{ connections|tojson }};
-        {% endif %}
-        {% if text %}
-            window.TEXT_CONTENT = {{ text|tojson|safe }};
         {% endif %}
     </script>
 {% endblock %}
