@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // По любому ещё есть баги, но главное базово оно работает
     function showConnectedMode(card) {
         if (card.parentElement.id === 'terms-column') {
             prevSelectedTerm = selectedTerm;
@@ -70,13 +71,37 @@ document.addEventListener('DOMContentLoaded', function () {
             card.classList.add('connected');
         }
 
+        // Когда есть только несколько терминов и выбранный термин становится не термином
+        if (selectedNonTerms.includes(selectedTerm)) {
+            selectedTerm = document.querySelector('#terms-column > :last-child');
+            prevSelectedTerm = selectedTerm;
+            if (selectedTerm !== null) {
+                prevSelectedTerm.classList.remove('connected');
+                selectedTerm.classList.add('connected');
+            }
+
+            if (!selectedNonTerms.includes(card)) {
+                selectedNonTerms.push(card);
+                card.classList.add('connected');
+            } else {
+                card.classList.remove('connected');
+            }
+        }
+
         if (selectedTerm && card !== selectedTerm) {
             createConnection(selectedTerm, card);
-            selectedNonTerms = [];
-            // prevSelectedTerm = null;
-        } else if (selectedNonTerms.length > 0 && selectedTerm === card && prevSelectedTerm === null) {
-            for (let nonTerm of selectedNonTerms) {
-                createConnection(card, nonTerm);
+        }
+
+        // Пересоздаём связи для не терминов
+        if (selectedNonTerms.length > 0) {
+            if (selectedTerm === card && prevSelectedTerm === null) {
+                for (let nonTerm of selectedNonTerms) {
+                    createConnection(card, nonTerm);
+                }
+            } else if (selectedTerm !== null && prevSelectedTerm === selectedTerm) {
+                for (let nonTerm of selectedNonTerms) {
+                    createConnection(selectedTerm, nonTerm);
+                }
             }
         }
 
@@ -211,6 +236,7 @@ document.addEventListener('DOMContentLoaded', function () {
             ...processColumn('definitions-column', 'definition')
         ];
 
+        const analysis_result_id = document.getElementById('analysis_result_id').textContent;
         return {
             id: currentDictionaryId,
             phrases: allItems,
@@ -219,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 to_id: conn.to
             })),
             tfidf_range: parseFloat(number.value),
-            document_text: window.TEXT_CONTENT ?? ''
+            analysis_result_id: analysis_result_id !== '' ? analysis_result_id : null
         };
     }
 
@@ -267,7 +293,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(data => {
                     if (data.success) {
                         alert(data.message);
-                        window.location.reload()
+                        window.location.reload();
                     } else {
                         alert('Ошибка при обновлении словаря: ' + data.message);
                     }

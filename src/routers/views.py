@@ -8,15 +8,15 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse
 from starlette.templating import Jinja2Templates
 
+from src.services.search_service import SearchService
 from src.services.phrase_service import PhraseService
 from src.services.dictionary_service import DictionaryService
 from src.services.text_service import TextService
-from src.analysis.tfidf import search_phrases_with_tfidf, search_sentences_in_text_with_tfidf
-from config import logger, ANALYSIS_DIR
+from config import logger
 from database import get_session
-from src.database.models import Dictionary, PhraseType
-from src.analysis.consts import PATTERN_COLOR
-from src.analysis.phrase_extractor import PhraseExtractor
+from src.database.models import PhraseType, Document, AnalysisResult
+from src.analysis.consts import PATTERN_COLOR, TYPE_COLOR
+from src.analysis.analyser import Analyser
 
 views_router = APIRouter(tags=["views"], default_response_class=HTMLResponse)
 templates = Jinja2Templates(directory="templates")
@@ -24,6 +24,7 @@ templates = Jinja2Templates(directory="templates")
 # Фильтр для форматирования даты
 templates.env.filters["datetimeformat"] = lambda value: value.strftime("%H:%M %d.%m.%Y")
 templates.env.globals["PhraseType"] = PhraseType
+templates.env.globals["TYPE_COLOR"] = TYPE_COLOR
 
 
 @views_router.get("/", name="empty_analyze_text", status_code=status.HTTP_200_OK)
@@ -40,7 +41,8 @@ async def analyze_text(
         request: Request,
         text: Optional[str] = Form(None),
         file: UploadFile = File(None),
-        phrase_extractor: PhraseExtractor = Depends(PhraseExtractor)
+        analyser: Analyser = Depends(Analyser),
+        db: Session = Depends(get_session),
 ) -> HTMLResponse:
     """Обработка и отображение заданного для анализа текста"""
     if not text and not file.filename:
@@ -64,16 +66,37 @@ async def analyze_text(
             })
 
     try:
-        analysis = phrase_extractor.analyze_text_with_stats(content)
+        hash_key = TextService.get_text_content_hash(content)
+        exist_document = db.exec(select(Document).where(Document.hash_key == hash_key)).one_or_none()
+        if not exist_document:
+            document = Document(
+                hash_key=hash_key,
+                content=content
+            )
+            db.add(document)
+            db.flush()
 
-        for phrase in analysis["phrases"]:
-            phrase["color"] = PATTERN_COLOR.get(phrase["type"], "black")
+            extracted_analysis = analyser.analyze_text_with_stats(content)
+            for phrase in extracted_analysis["phrases"]:
+                phrase["color"] = PATTERN_COLOR.get(phrase["type"], "black")
+
+            # TODO: Возможно, имеет смысл сохранять сразу в базу ещё и vectorizer, sentence_vectors
+            analysis_result = AnalysisResult(
+                document_id=document.id,
+                content=extracted_analysis,
+                document_batches=Analyser.get_sentences_by_text(content)
+            )
+            db.add(analysis_result)
+
+            db.commit()
+        else:
+            analysis_result = db.exec(
+                select(AnalysisResult).where(AnalysisResult.document_id == exist_document.id)).one_or_none()
 
         return templates.TemplateResponse("index.html.jinja", {
             "request": request,
             "pattern_with_colors": PATTERN_COLOR,
-            "result_analysis": analysis,
-            "text_analysis": text
+            "analysis_result": analysis_result,
         })
 
     except Exception as e:
@@ -88,21 +111,19 @@ async def analyze_text(
 @views_router.get("/dictionary/create", name="create_dictionary")
 async def create_dictionary(
         request: Request,
-        analysis_file_id: str,
-        phrase_service: PhraseService = Depends(PhraseService)
+        analysis_result_id: int,
+        phrase_service: PhraseService = Depends(PhraseService),
+        db: Session = Depends(get_session),
 ) -> HTMLResponse:
     """Страница для создания словаря из сохраненных результатов анализа"""
     try:
-        filename = f"{ANALYSIS_DIR}/analysis_{analysis_file_id}.json"
-        analysis_data = TextService.get_content_file(filename)
-
-        phrases = phrase_service.get_terms_by_analysis_data(analysis_data)
+        analysis_result = db.exec(select(AnalysisResult).where(AnalysisResult.id == analysis_result_id)).one_or_none()
+        phrases = phrase_service.get_terms_by_analysis_data(analysis_result.content)
 
         return templates.TemplateResponse("dictionary.html.jinja", {
             "request": request,
             "phrases": [asdict(phrase) for phrase in phrases],
-            "file_id": analysis_file_id,
-            "text": analysis_data["text"]
+            "analysis_result_id": analysis_result_id
         })
     except Exception as e:
         logger.error(msg=f"Error loading analysis: {str(e)}", exc_info=True)
@@ -121,7 +142,7 @@ async def list_dictionaries(
     try:
         return templates.TemplateResponse("dictionaries_list.html.jinja", {
             "request": request,
-            "dictionaries": dict_service.get_short_dictionaries_from_db()
+            "dictionaries": dict_service.get_all_short_dictionaries_from_db()
         })
     except Exception as e:
         logger.error(msg=f"Error listing dictionaries: {str(e)}", exc_info=True)
@@ -170,49 +191,11 @@ async def edit_dictionary(
 async def search(
         request: Request,
         query: Optional[str] = Query(None),
-        db: Session = Depends(get_session)
+        db: Session = Depends(get_session),
+        search_service: SearchService = Depends(SearchService),
 ) -> HTMLResponse:
     """Страница поиска по словарям"""
-    # TODO: Переосмыслить поиск в issue #20
-    result = []
-    if (query is not None) and (query != ""):
-        dictionaries = db.exec(
-            select(Dictionary)
-            .order_by(Dictionary.updated_at)
-            .limit(3)
-        ).all()
-
-        for dictionary in dictionaries:
-            dict_entry = {
-                "dictionary": dictionary,
-                "terms": []
-            }
-
-            # 1. Ищем все подходящие термины.
-            # Вытягивает только не скрытые термины.
-            #   Можно было бы сделать это в запросе, но я так и не разобрался как нормально это сделать...
-            dict_terms = [t for t in dictionary.terms if t.hidden is False]
-            terms_with_sims = search_phrases_with_tfidf(query=query, phrases=dict_terms)
-
-            for term, sim in terms_with_sims:
-                term_entry = {
-                    "term": term,
-                    "similarity": sim,
-                    "sentences": []
-                }
-                # 2. Поиск термина во всех текстах словаря
-                for document in dictionary.documents:
-                    if document.content == "":
-                        continue
-                    sentences = search_sentences_in_text_with_tfidf(
-                        query=term.text,
-                        text=document.content
-                    )
-                    term_entry["sentences"] = term_entry["sentences"] + sentences
-                dict_entry["terms"].append(term_entry)
-            result.append(dict_entry)
-
     return templates.TemplateResponse("search.html.jinja", {
         "request": request,
-        "search_results": result
+        "search_results": search_service.search_by_query(db, query)
     })

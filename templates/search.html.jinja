@@ -4,11 +4,12 @@
     {{ super() }}
     <link href="/public/css/search.css" rel="stylesheet">
     <style>
-            .connection-type {
+        .connection-type {
             font-weight: bold;
             color: #6c757d;
             margin-bottom: 5px;
         }
+
         .connection-list {
             margin-left: 20px;
         }
@@ -21,90 +22,130 @@
             <div class="col-md-8">
                 <div class="card search-card">
                     <div class="card-body">
-                        <h4 class="card-title mb-3">🔍 Поиск в словарях</h4>
+                        <div>
+                            <h4 class="card-title mb-3"
+                                style="display: flex; align-items: center;"
+                            >
+                                🔍 Поиск в словарях
+                                <a class="btn text-decoration-none" data-bs-toggle="collapse"
+                                   data-bs-target="#collapseExample" aria-expanded="false"
+                                   aria-controls="collapseExample">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                         class="bi bi-info-circle" viewBox="0 0 16 16">
+                                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"></path>
+                                        <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"></path>
+                                    </svg>
+                                </a>
+                            </h4>
+                            <div class="collapse" id="collapseExample">
+                                <div class="alert alert-info mb-3 d-flex align-items-center">
+                                    Поиск ищет подходящие термины из 3х последних загруженных словарей и находит
+                                    3 самых релевантных предложения, где встречались найденные термины
+                                </div>
+                            </div>
+                        </div>
 
                         <form action="/search" method="get">
                             <div class="mb-3">
+                                <label for="searchQuery">Основное словосочетание*</label>
                                 <input type="text" id="searchQuery" name="query" class="form-control"
                                        placeholder="Введите слово или фразу для поиска"
-                                       value="{{ request.query_params.get('query', '') }}">
+                                       value="{{ request.query_params.get('query', '') }}"
+                                >
                             </div>
-
-                            <button type="submit" class="btn btn-primary search-btn w-100">
-                                Найти
-                            </button>
-                        </form>
+                            <div class="mb-3">
+                                <label for="searchQuery">Вспомогательное словосочетание</label>
+                                <input type="text" id="searchQuery" class="form-control"
+                                       placeholder="Введите слово или фразу для поиска"
+                                        {#                                       value="{{ request.query_params.get('query', '') }}"#}
+                                >
+                                <div id="emailHelp" class="form-text">Если хотите найти где встречаются сразу 2 словосочетания и их пересечения в предложении
+                                </div>
+                            </div>
                     </div>
+
+                    <button type="submit" class="btn btn-primary search-btn w-100">
+                        Найти
+                    </button>
+                    </form>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Блок результатов -->
-        {% if search_results %}
-            <div class="row justify-content-center">
-                <div class="col-md-8">
-                    <h4 class="mb-3">Результаты поиска</h4>
+    <!-- Блок результатов -->
+    {% if search_results %}
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <h4 class="mb-3">Результаты поиска</h4>
 
-                    {% for dict_entry in search_results %}
-                        <div class="card result-card mb-4">
-                            <div class="card-body">
-                                <h4 class="text-primary mb-3">
-                                    Словарь "{{ dict_entry.dictionary.name }}"
-                                </h4>
+                {% for dict_entry in search_results %}
+                    <div class="card result-card mb-4">
+                        <div class="card-body">
+                            <h4 class="text-primary mb-3">
+                                Словарь "{{ dict_entry.dictionary.name }}"
+                            </h4>
 
-                                {% if dict_entry.terms %}
-                                    {% for term_entry in dict_entry.terms %}
-                                        <div class="mb-4">
-                                            <h5>
-                                                Термин: {{ term_entry.term.text }}
-                                                <small class="text-muted">(Схожесть: {{ term_entry.similarity|round(2) }})</small>
-                                            </h5>
+                            {% if dict_entry.terms %}
+                                {% for term_entry in dict_entry.terms %}
+                                    {% if term_entry.term.phrase_type.value == PhraseType["term"].value %}
+                                        {% set term_phrase_type = PhraseType["synonym"].get_desc() %}
+                                    {% else %}
+                                        {% set term_phrase_type = term_entry.term.phrase_type.get_desc() %}
+                                    {% endif %}
+                                    <div class="mb-4">
+                                        <p class="mb-0">
+                                            <strong style="color: {{ TYPE_COLOR[term_entry.term.phrase_type] }}">
+                                                {{ term_entry.term.text }}
+                                            </strong>
+                                            <small class="text-muted">(Схожесть: {{ term_entry.similarity|round(2) }})</small>
+                                        </p>
 
-                                            {% if term_entry.sentences %}
-                                                <div class="mb-3">
-                                                    <h6>Найденные предложения:</h6>
-                                                    {% for sentence in term_entry.sentences %}
-                                                        <div class="match-item d-flex justify-content-between mb-2">
-                                                            <div>{{ sentence|safe }}</div>
-                                                        </div>
-                                                    {% endfor %}
-                                                </div>
-
-                                                {% set to_connections = term_entry.term.to_connections | default([], true) %}
-                                                {% set from_connections = [] %}
-                                                {% set connections = to_connections + from_connections %}
+                                        {% set to_connections = term_entry.term.to_connections | default([], true) %}
+                                        {% set from_connections = [] %}
+                                        {% set connections = to_connections + from_connections %}
+                                        <div class="mb-2">
+                                            <small>
                                                 {% if connections %}
-                                                    <div class="connection-type">Связанные словосочетания:</div>
-                                                    <ul class="connection-list">
-                                                        {% for conn in connections %}
-                                                            <li>
-                                                                {{ conn.from_term.text }}
-                                                                {% if conn.from_term.phrase_type.value == PhraseType["term"].value %}
-                                                                    <span class="badge bg-info">{{ PhraseType["synonym"].get_desc() }}</span>
-                                                                {% else %}
-                                                                    <span class="badge bg-info">{{ conn.from_term.phrase_type.get_desc() }}</span>
-                                                                {% endif %}
-                                                            </li>
-                                                        {% endfor %}
-                                                    </ul>
+                                                    {% for conn in connections %}
+                                                        <strong style="color: {{ TYPE_COLOR[conn.from_term.phrase_type] }}">
+                                                            {{ conn.from_term.text }}
+                                                        </strong>
+                                                        <span class="badge bg-info">{{ conn.from_term.phrase_type.get_desc() }}</span>
+                                                    {% endfor %}
                                                 {% endif %}
-                                                <hr>
-                                            {% else %}
-                                                <div class="alert alert-info">Нет найденных предложений для этого
-                                                    термина
-                                                </div>
-                                            {% endif %}
+                                            </small>
                                         </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="alert alert-info">Не найдено терминов, соответствующих запросу</div>
-                                {% endif %}
-                            </div>
+
+                                        {% if term_entry.sentences %}
+                                            <div class="mb-3">
+                                                <h6>Найденные предложения:</h6>
+                                                {% for sentence in term_entry.sentences %}
+                                                    <div class="match-item d-flex justify-content-between mb-2">
+                                                        <div>{{ sentence|safe }}</div>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+
+                                            <hr>
+                                        {% else %}
+                                            <div class="alert alert-info">Нет найденных предложений для этого
+                                                термина
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="alert alert-info">Ничего не найдено</div>
+                            {% endif %}
                         </div>
-                    {% endfor %}
-                </div>
+                    </div>
+                {% endfor %}
             </div>
-        {% endif %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">Ничего не найдено</div>
+    {% endif %}
     </div>
 {% endblock %}
 
