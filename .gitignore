@@ -173,8 +173,5 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-# Файлы с результатами анализа
-analysis/*
-
 # mac files
 .DS_Store
