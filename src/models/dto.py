@@ -28,7 +28,7 @@ class DictionaryDTO:
     phrases: List[TermDTO]
     connections: List[ConnectionDTO]
     id: Optional[int] = None
-    document_text: str = ''
+    analysis_result_id: Optional[int] = None
 
 
 @dataclass

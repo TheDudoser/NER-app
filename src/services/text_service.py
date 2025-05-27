@@ -12,6 +12,8 @@ class TextService:
 
     @staticmethod
     def get_text_content_hash(data):
+        # Предварительно нормализуем текст
+        data = data.replace('\r\n', '\n').replace('\r', '\n')
         return hashlib.md5(data.encode('utf-8')).hexdigest()
 
     @staticmethod

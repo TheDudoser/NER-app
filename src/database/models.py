@@ -1,4 +1,6 @@
 from typing import List, Optional
+
+from sqlalchemy import JSON, ARRAY, String
 from sqlmodel import SQLModel, Field, Relationship, Column, Enum
 from datetime import datetime, UTC
 
@@ -25,7 +27,7 @@ class Dictionary(SQLModel, table=True):
 
     terms: List["Term"] = Relationship(back_populates="dictionary")
     connections: List["Connection"] = Relationship(back_populates="dictionary")
-    documents: List["Document"] = Relationship(back_populates="dictionary")
+    dictionary_analysis_results: List["DictionaryAnalysisResult"] = Relationship(back_populates="dictionary")
 
     @property
     def created_at_local(self) -> datetime | None:
@@ -42,10 +44,36 @@ class Dictionary(SQLModel, table=True):
 
 class Document(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    dictionary_id: int = Field(foreign_key="dictionary.id")
+    hash_key: Optional[str] = Field(index=True)
     content: str
 
-    dictionary: Dictionary = Relationship(back_populates="documents")
+    analysis_result: Optional["AnalysisResult"] = Relationship(  # Изменили на единственное число
+        back_populates="document",
+        sa_relationship_kwargs={"uselist": False}  # Указываем, что связь 1:1
+    )
+
+
+class AnalysisResult(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    document_id: Optional[int] = Field(foreign_key="document.id")
+    content: Optional[dict] = Field(default={}, sa_column=Column(JSON))
+    document_batches: List[str] = Field(
+        default_factory=list,
+        sa_column=Column(ARRAY(String))
+    )
+
+    document: Document = Relationship(back_populates="analysis_result")
+
+    dictionary_analysis_results: List["DictionaryAnalysisResult"] = Relationship(back_populates="analysis_result")
+
+
+class DictionaryAnalysisResult(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    dictionary_id: int = Field(foreign_key="dictionary.id")
+    analysis_result_id: int = Field(foreign_key="analysisresult.id")
+
+    dictionary: Dictionary = Relationship(back_populates="dictionary_analysis_results")
+    analysis_result: AnalysisResult = Relationship(back_populates="dictionary_analysis_results")
 
 
 class Term(SQLModel, table=True):
