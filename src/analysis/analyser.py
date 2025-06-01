@@ -28,11 +28,6 @@ class Analyser:
         parsed = self.morph.parse(word)[0]
         return parsed.tag.POS
 
-    def __normalize_word(self, word: str) -> str:
-        """Нормализация слова с обработкой исключений"""
-        parsed = self.morph.parse(word)[0]
-        return parsed.normal_form
-
     @staticmethod
     def __match_complex_pattern(pos_window: List[str], pattern: List) -> bool:
         """Проверка сложных шаблонов с вложенными структурами"""
@@ -103,6 +98,9 @@ class Analyser:
             top_k: int = 10000
     ) -> List[Tuple[str, float]]:
         """Извлекает топ n-грамм по TF-IDF."""
+        if text == "":
+            raise Exception("Empty text")
+
         tfidf_matrix = self.vectorizer.fit_transform([text])
         features = self.vectorizer.get_feature_names_out()
         scores = np.asarray(tfidf_matrix.sum(axis=0)).ravel()
@@ -172,17 +170,18 @@ class Analyser:
 
         return [(phrases[i], similarities[i]) for i in top_indices if similarities[i] > threshold_similarity]
 
-    def search_sentences_by_queries_with_tfidf(
+    def search_batches_by_queries_with_tfidf(
             self,
             queries: List[str],
-            sentence_vectors,
+            batch_vectors,
             top_k: int = 3
     ) -> List[int]:
+        """Возвращает список id batch, в которых встречались queries"""
         # Векторизуем каждую фразу отдельно
         queries_vector = self.simple_vectorizer.transform(queries)
 
         # Считаем схожесть каждой фразы с каждым предложением
-        similarities = cosine_similarity(queries_vector, sentence_vectors)
+        similarities = cosine_similarity(queries_vector, batch_vectors)
 
         # Агрегируем результаты (например, берём максимум или среднее)
         aggregated_similarities = np.max(similarities, axis=0)  # или np.mean
@@ -195,7 +194,10 @@ class Analyser:
         return results
 
     def simple_vectorize(self, docs: List[str]):
-        return self.simple_vectorizer.fit_transform(docs)
+        if len(docs) != 0:
+            return self.simple_vectorizer.fit_transform(docs)
+        else:
+            raise Exception("Empty docs")
 
     @staticmethod
     def get_sentences_by_text(text: str):

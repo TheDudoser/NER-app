@@ -40,7 +40,7 @@ class SearchService:
                             continue
 
                         batches = analysis_result.document_batches
-                        sentence_vectors = analyser.simple_vectorize(batches)
+                        batch_vectors = analyser.simple_vectorize(batches)
 
                         if term.phrase_type != PhraseType.term:
                             connection_term_texts = [conn_term.from_term for conn_term in term.to_connections]
@@ -48,15 +48,15 @@ class SearchService:
                             connection_term_texts = [conn_term.to_term for conn_term in term.from_connections]
 
                         top_k = 3
-                        sentence_ids = analyser.search_sentences_by_queries_with_tfidf(
+                        sentence_ids = analyser.search_batches_by_queries_with_tfidf(
                             queries=[term.text],
-                            sentence_vectors=sentence_vectors,
+                            batch_vectors=batch_vectors,
                             top_k=top_k
                         )
                         if len(sentence_ids) < top_k:
-                            sentence_ids = sentence_ids + analyser.search_sentences_by_queries_with_tfidf(
+                            sentence_ids = sentence_ids + analyser.search_batches_by_queries_with_tfidf(
                                 queries=[conn.text for conn in connection_term_texts],
-                                sentence_vectors=sentence_vectors,
+                                batch_vectors=batch_vectors,
                                 top_k=top_k
                             )
 

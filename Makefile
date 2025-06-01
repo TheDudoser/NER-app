@@ -11,3 +11,6 @@ install:
 
 freeze:
 	@$(DOCKER_COMPOSE) exec $(PYTHON_SERVICE) pip freeze > requirements.txt
+
+test:
+	@$(DOCKER_COMPOSE) exec $(PYTHON_SERVICE) python -m unittest discover -s tests -p "test*.py"
