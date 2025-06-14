@@ -59,15 +59,16 @@
                                        placeholder="Введите слово или фразу для поиска"
                                         {#                                       value="{{ request.query_params.get('query', '') }}"#}
                                 >
-                                <div id="emailHelp" class="form-text">Если хотите найти где встречаются сразу 2 словосочетания и их пересечения в предложении
+                                <div id="emailHelp" class="form-text">Если хотите найти где встречаются сразу 2
+                                    словосочетания и их пересечения в предложении
                                 </div>
                             </div>
-                    </div>
 
-                    <button type="submit" class="btn btn-primary search-btn w-100">
-                        Найти
-                    </button>
-                    </form>
+                            <button type="submit" class="btn btn-primary search-btn w-100">
+                                Найти
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -101,17 +102,15 @@
                                             <small class="text-muted">(Схожесть: {{ term_entry.similarity|round(2) }})</small>
                                         </p>
 
-                                        {% set to_connections = term_entry.term.to_connections | default([], true) %}
-                                        {% set from_connections = [] %}
-                                        {% set connections = to_connections + from_connections %}
+                                        {% set connections = term_entry.connections %}
                                         <div class="mb-2">
                                             <small>
                                                 {% if connections %}
                                                     {% for conn in connections %}
-                                                        <strong style="color: {{ TYPE_COLOR[conn.from_term.phrase_type] }}">
-                                                            {{ conn.from_term.text }}
+                                                        <strong style="color: {{ TYPE_COLOR[conn.phrase_type] }}">
+                                                            {{ conn.text }}
                                                         </strong>
-                                                        <span class="badge bg-info">{{ conn.from_term.phrase_type.get_desc() }}</span>
+                                                        <span class="badge bg-info">{{ conn.phrase_type.get_desc() }}</span>
                                                     {% endfor %}
                                                 {% endif %}
                                             </small>
