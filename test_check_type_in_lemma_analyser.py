@@ -70,12 +70,12 @@ PHRASE_RULES: Dict[str, Dict[str, Callable[[List[str]], bool]]] = {
 # Константы с правилами проверки типов словосочетаний
 
 
-def check_phrase_type(window: List[str]) -> str:
+def check_phrase_type(window: List[str]) -> str | None:
     """Определяет тип словосочетания по заданным правилам."""
     for phrase_type, rule in PHRASE_RULES.items():
         if rule["condition"](window):
             return phrase_type
-    return "неопределенный"
+    return None
 
 
 def lemma_analyzer(text: str, max_n: int = 3) -> List[Tuple[str, str]]:
@@ -93,7 +93,7 @@ def lemma_analyzer(text: str, max_n: int = 3) -> List[Tuple[str, str]]:
             if all(re.fullmatch(r"[A-Za-zА-Яа-яёЁ0-9-]+", tok) for tok in window):
                 # Проверяем тип словосочетания
                 phrase_type = check_phrase_type(window)
-                if phrase_type == "неопределенный":
+                if phrase_type is None:
                     continue
 
                 lemmas = []
@@ -105,7 +105,6 @@ def lemma_analyzer(text: str, max_n: int = 3) -> List[Tuple[str, str]]:
 
 with open("text_examples/pdd.txt", "r") as file:
     text = file.read().encode("utf-8")
-
 
 vectorizer = TfidfVectorizer(
     analyzer=partial(lemma_analyzer, max_n=3),

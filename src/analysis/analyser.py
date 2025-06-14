@@ -1,6 +1,6 @@
 import re
 from functools import partial
-from typing import Dict, List, Tuple, Sequence
+from typing import Dict, List, Tuple, Sequence, Callable
 
 import numpy as np
 import pymorphy3
@@ -13,64 +13,87 @@ from .consts import *
 
 class Analyser:
     def __init__(self, ngram_count: int = 3):
+        self.PHRASE_RULES = None
+        self.__init_pattern_rules()
+
         self.morph = pymorphy3.MorphAnalyzer()
         self.simple_vectorizer = TfidfVectorizer(
             ngram_range=(1, ngram_count),
             use_idf=True
         )
         self.vectorizer = TfidfVectorizer(
-            analyzer=partial(self.lemma_analyzer_with_numbers, max_n=ngram_count),
+            analyzer=partial(self.lemma_analyzer, max_n=ngram_count),
             use_idf=True
         )
 
-    def __get_pos(self, word: str) -> str | None:
-        """Определение части речи с обработкой исключений"""
-        parsed = self.morph.parse(word)[0]
-        return parsed.tag.POS
+    def __init_pattern_rules(self):
+        self.PHRASE_RULES: Dict[str, Dict[str, Callable[[List[str]], bool]]] = {
+            "однословное": {
+                "condition": lambda words: (
+                        len(words) == 1 and
+                        'NOUN' == self.morph.parse(words[0])[0].tag.POS
+                )
+            },
+            "адъективное": {
+                "condition": lambda words: (
+                        len(words) == 2 and
+                        'ADJF' in [self.morph.parse(word)[0].tag.POS for word in words] and
+                        'NOUN' in [self.morph.parse(word)[0].tag.POS for word in words]
+                )
+            },
+            "генитивное": {
+                "condition": lambda words: (
+                        len(words) == 2 and
+                        [self.morph.parse(word)[0].tag.POS for word in words].count('NOUN') == 2 and
+                        self.morph.parse(words[1])[0].tag.case in ['nomn', 'accs'] and
+                        'gent' == self.morph.parse(words[0])[0].tag.case
+                )
+            },
+            "адъективное_многословное": {
+                "condition": lambda words: (
+                        len(words) == 3 and
+                        [self.morph.parse(word)[0].tag.POS for word in words[:-1]].count('ADJF') == 2 and
+                        'NOUN' == self.morph.parse(words[-1])[0].tag.POS
+                )
+            },
+            "генитивное_многословное": {
+                "condition": lambda words: (
+                        len(words) == 3 and
+                        [self.morph.parse(word)[0].tag.POS for word in words].count('NOUN') == 3 and
+                        [self.morph.parse(word)[0].tag.case for word in words].count('gent') == 2 and
+                        set([self.morph.parse(word)[0].tag.case for word in words]).intersection({'nomn', 'accs'})
+                )
+            },
+            "адъективно-генитивное": {
+                "condition": lambda words: (
+                        len(words) == 3 and
+                        'NOUN' in self.morph.parse(words[0])[0].tag and
+                        'ADJF' in self.morph.parse(words[1])[0].tag and
+                        'NOUN' in self.morph.parse(words[2])[0].tag and
+                        self.morph.parse(words[1])[0].tag.case == 'gent' and
+                        self.morph.parse(words[2])[0].tag.case == 'gent'
+                )
+            },
+            "генитивно-адъективное": {
+                "condition": lambda words: (
+                        len(words) == 3 and
+                        'ADJF' in self.morph.parse(words[0])[0].tag and
+                        'NOUN' in self.morph.parse(words[1])[0].tag and
+                        'NOUN' in self.morph.parse(words[2])[0].tag and
+                        self.morph.parse(words[2])[0].tag.case == 'gent'
+                )
+            }
+        }
 
-    @staticmethod
-    def __match_complex_pattern(pos_window: List[str], pattern: List) -> bool:
-        """Проверка сложных шаблонов с вложенными структурами"""
-        if len(pos_window) != len(pattern):
-            return False
-
-        for p, w in zip(pattern, pos_window):
-            if isinstance(p, tuple):
-                # Вложенный шаблон
-                sub_len = len(p)
-                if not any(
-                        all(sp == sw or sp == '?' for sp, sw in zip(p, pos_window[i:i + sub_len]))
-                        for i in range(len(pos_window) - sub_len + 1)
-                ):
-                    return False
-            elif p != w and p != '?':
-                return False
-
-        return True
-
-    def __check_phrase_pattern(self, phrase: str) -> str | None:
-        """
-        Проверяет, соответствует ли фраза одному из POS-шаблонов.
-        Возвращает тип шаблона или None.
-        """
-        words = phrase.split()
-        pos_tags = [self.__get_pos(word) for word in words]
-        pos_pattern = [POS_TAGS.get(tag, '?') for tag in pos_tags]
-
-        for pattern_type, patterns in PATTERNS.items():
-            for pattern in patterns:
-                if isinstance(pattern, tuple):
-                    if len(pos_pattern) == len(pattern) and all(
-                            p == w or p == '?' for p, w in zip(pattern, pos_pattern)
-                    ):
-                        return pattern_type
-                else:
-                    if Analyser.__match_complex_pattern(pos_pattern, pattern):
-                        return pattern_type
+    def _check_phrase_type(self, window: List[str]) -> str | None:
+        """Определяет тип словосочетания по заданным правилам."""
+        for phrase_type, rule in self.PHRASE_RULES.items():
+            if rule["condition"](window):
+                return phrase_type
         return None
 
-    def lemma_analyzer_with_numbers(self, text: str, max_n: int = 3) -> List[str]:
-        """Генерирует лемматизированные n-граммы из текста."""
+    def lemma_analyzer(self, text: str, max_n: int = 3) -> List[Tuple[str, str]]:
+        """Генерирует лемматизированные n-граммы из текста с проверкой типа словосочетания."""
         tokens = re.findall(
             r"[A-Za-zА-Яа-яёЁ0-9]{2,}(?:-[A-Za-zА-Яа-яёЁ0-9]{2,})*|[^\w\s]",
             text,
@@ -82,21 +105,22 @@ class Analyser:
             for i in range(len(tokens) - n + 1):
                 window = tokens[i:i + n]
                 if all(re.fullmatch(r"[A-Za-zА-Яа-яёЁ0-9-]+", tok) for tok in window):
+                    # Проверяем тип словосочетания
+                    phrase_type = self._check_phrase_type(window)
+                    if phrase_type is None:
+                        continue
+
                     lemmas = []
                     for tok in window:
-                        if '-' in tok:
-                            parts = [self.morph.parse(p)[0].normal_form for p in tok.split('-')]
-                            lemmas.append('-'.join(parts))
-                        else:
-                            lemmas.append(self.morph.parse(tok)[0].normal_form)
-                    ngrams.append(' '.join(lemmas))
+                        lemmas.append(self.morph.parse(tok)[0].normal_form)
+                    ngrams.append((phrase_type, ' '.join(lemmas)))
         return ngrams
 
     def extract_top_ngrams_with_tfidf(
             self,
             text: str,
             top_k: int = 10000
-    ) -> List[Tuple[str, float]]:
+    ) -> List[Tuple[str, str, float]]:
         """Извлекает топ n-грамм по TF-IDF."""
         if text == "":
             raise Exception("Empty text")
@@ -108,7 +132,7 @@ class Analyser:
         # Получаем индексы топ результатов
         top_idx = np.argsort(scores)[-top_k:][::-1]
 
-        return [(features[i], float(scores[i])) for i in top_idx if scores[i] > 0]
+        return [(features[i][0], features[i][1], float(scores[i])) for i in top_idx if scores[i] > 0]
 
     def analyze_text_with_stats(self, text: str) -> Dict:
         """Анализирует текст, извлекая ключевые фразы с их статистикой."""
@@ -121,8 +145,7 @@ class Analyser:
                 'tfidf_score': tfidf,
                 'length': len(phrase.split())
             }
-            for phrase, tfidf in self.extract_top_ngrams_with_tfidf(text)
-            if (pattern_type := self.__check_phrase_pattern(phrase))
+            for pattern_type, phrase, tfidf in self.extract_top_ngrams_with_tfidf(text)
         ]
 
         # Сортируем по убыванию TF-IDF и длине
@@ -154,7 +177,7 @@ class Analyser:
             return []
 
         # Преобразуем фразы и запрос в TF-IDF векторы
-        all_texts = [t.text for t in phrases] + [self.lemma_analyzer_with_numbers(text=query)[-1]]
+        all_texts = [t.text for t in phrases] + [self.lemma_analyzer(text=query)[-1]]
         tfidf_matrix = self.simple_vectorizer.fit_transform(all_texts)
 
         # Вектор запроса - последняя строка матрицы

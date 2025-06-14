@@ -15,16 +15,6 @@ GENITIVE_WITH_PREPOSITION: Final[str] = 'генитивное_с_предлог�
 ADVERBIAL_COMBINATION: Final[str] = 'адвербиальное_сочетание'
 SUBSTANTIVE_WITH_PREPOSITION: Final[str] = 'субстантивное_с_предлогом'
 
-PATTERNS = {
-    SINGLE_WORD: [('С',)],
-    ADJECTIVAL: [('П', 'С')],
-    GENITIVE: [('С', 'С')],
-    ADJECTIVAL_WORDY: [('П', 'П', 'С')],
-    GENITIVE_WORDY: [('С', 'С', 'С')],
-    ADJECTIVAL_GENITIVE: [('С', 'П', 'С')],
-    GENITIVE_ADJECTIVAL: [('П', 'С', 'С')],
-}
-
 # Подробное описание паттернов
 PATTERN_DESCRIPTIONS = {
     SINGLE_WORD: "Сущ",
@@ -34,15 +24,6 @@ PATTERN_DESCRIPTIONS = {
     GENITIVE_WORDY: "Сущ + Сущ + Сущ",
     ADJECTIVAL_GENITIVE: "Сущ + Прил + Сущ",
     GENITIVE_ADJECTIVAL: "Прил + Сущ + Сущ",
-}
-
-POS_TAGS = {
-    'NOUN': 'С',    # существительное
-    'ADJF': 'П',    # прилагательное (полное)
-    'ADJS': 'П',    # прилагательное (краткое)
-    # 'ADVB': 'Н',    # наречие
-    'PRTF': 'П',    # причастие (полное)
-    'PRTS': 'П'     # причастие (краткое)
 }
 
 PATTERN_COLOR = {
