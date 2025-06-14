@@ -164,7 +164,7 @@ class Analyser:
             self,
             query: str,
             phrases: Sequence[Term],
-            top_k: int = 3,
+            top_k: int = 5,
             threshold_similarity: float = 0.0,
     ) -> List[Tuple[Term, float]]:
         """
@@ -177,7 +177,7 @@ class Analyser:
             return []
 
         # Преобразуем фразы и запрос в TF-IDF векторы
-        all_texts = [t.text for t in phrases] + [self.lemma_analyzer(text=query)[-1]]
+        all_texts = [t.text for t in phrases] + [self.lemma_analyzer(text=query)[-1][1]]
         tfidf_matrix = self.simple_vectorizer.fit_transform(all_texts)
 
         # Вектор запроса - последняя строка матрицы
