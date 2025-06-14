@@ -29,6 +29,7 @@ class SearchService:
                 for term, sim in terms_with_sims:
                     term_entry = {
                         "term": term,
+                        "connections": [],
                         "similarity": sim,
                         "sentences": []
                     }
@@ -53,12 +54,12 @@ class SearchService:
                             batch_vectors=batch_vectors,
                             top_k=top_k
                         )
-                        if len(sentence_ids) < top_k:
-                            sentence_ids = sentence_ids + analyser.search_batches_by_queries_with_tfidf(
-                                queries=[conn.text for conn in connection_term_texts],
-                                batch_vectors=batch_vectors,
-                                top_k=top_k
-                            )
+                        # if len(sentence_ids) < top_k:
+                        #     sentence_ids = sentence_ids + analyser.search_batches_by_queries_with_tfidf(
+                        #         queries=[conn.text for conn in connection_term_texts],
+                        #         batch_vectors=batch_vectors,
+                        #         top_k=top_k
+                        #     )
 
                         sentences = []
                         for idx in set(sentence_ids):
@@ -78,6 +79,7 @@ class SearchService:
 
                             sentences.append(sentence)
 
+                        term_entry["connections"] = term_entry["connections"] + connection_term_texts
                         term_entry["sentences"] = term_entry["sentences"] + sentences
                     dict_entry["terms"].append(term_entry)
                 if len(dict_entry["terms"]) > 0:
