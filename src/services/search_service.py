@@ -26,6 +26,34 @@ class SearchService:
                 terms = PhraseService.get_terms_without_phrases(db, dictionary.id)
                 terms_with_sims = analyser.search_phrases_with_tfidf(query=query, phrases=terms)
 
+                # TODO: Добавить группировку по термину, в таком случае предложения ищутся для всех словосочетаний
+                # Можно сгруппировать по сущностям с наибольшей вероятностью и туда напихать его синонимы/значения
+                # term_group = [term for term, _ in terms_with_sims]
+                # # Собираем элементы для удаления
+                # to_remove = []
+                # for term, sim in terms_with_sims:
+                #     if term.phrase_type == PhraseType.term:
+                #         print('FROM_CONN', term.from_connections)
+                #         for conn_term in term.from_connections:
+                #             if conn_term.to_term in [t for t, s in terms_with_sims if s <= sim]:
+                #                 to_remove.append(conn_term.to_term)
+                #             elif conn_term.to_term in [t for t, s in terms_with_sims if s >= sim]:
+                #                 to_remove.append(term)
+                #     else:
+                #         print('TO_CONN', term.to_connections)
+                #         for conn_term in term.to_connections:
+                #             if conn_term.from_term in [t for t, s in terms_with_sims if s <= sim]:
+                #                 to_remove.append(conn_term.from_term)
+                #             elif conn_term.from_term in [t for t, s in terms_with_sims if s >= sim]:
+                #                 to_remove.append(term)
+                #
+                # print('to_remove', to_remove)
+                # print()
+                # print("FILTERED", [t for t in term_group if t not in to_remove])
+                # print()
+                # print("NOT_FILTERED", terms_with_sims)
+                # print()
+
                 for term, sim in terms_with_sims:
                     term_entry = {
                         "term": term,
@@ -55,11 +83,11 @@ class SearchService:
                             top_k=top_k
                         )
                         # if len(sentence_ids) < top_k:
-                        #     sentence_ids = sentence_ids + analyser.search_batches_by_queries_with_tfidf(
-                        #         queries=[conn.text for conn in connection_term_texts],
-                        #         batch_vectors=batch_vectors,
-                        #         top_k=top_k
-                        #     )
+                        sentence_ids = sentence_ids + analyser.search_batches_by_queries_with_tfidf(
+                            queries=[conn.text for conn in connection_term_texts],
+                            batch_vectors=batch_vectors,
+                            top_k=top_k
+                        )
 
                         sentences = []
                         for idx in set(sentence_ids):

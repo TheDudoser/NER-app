@@ -7,7 +7,7 @@ db = next(get_session())
 search_service = SearchService()
 start = time.time()
 
-print(search_service.search_by_query(db, "шапочка"))
+print(search_service.search_by_query(db, "бабушки голос"))
 
 end = time.time()
 search_time = end - start
