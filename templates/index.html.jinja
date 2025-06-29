@@ -24,9 +24,9 @@
                         <small class="text-muted">Для лучшего выделения именованных сущностей рекомендуется
                             подгружать тексты одной тематики.
                             <br>Если ваш текст разбит на главы - грузите каждую главу по отдельности.</small>
+                        {% set text_analysis = analysis_result.document.content if analysis_result else '' %}
                         <textarea id="textInput" name="text" class="form-control mb-3" rows="8"
                                   placeholder="Введите текст для анализа...">{{ text_analysis }}</textarea>
-
                         <div class="d-flex gap-2 mb-3">
                             <button id="analyzeBtn" type="submit" class="btn btn-primary">
                                 Анализировать текст
@@ -62,7 +62,8 @@
         </div>
     </div>
 
-    {% if result_analysis is defined %}
+    {% if analysis_result is defined %}
+        {% set analysis_result_content = analysis_result.content %}
         <div class="card mt-4" id="resultsCard">
             <div class="card-header">
                 <h5 class="mb-0">Результаты анализа</h5>
@@ -72,12 +73,15 @@
                 <div class="d-flex justify-content-between mb-3 flex-wrap">
                     <div>
                         <span class="badge bg-primary rounded-pill"
-                              id="totalPhrases">{{ result_analysis.total_phrases }}</span>
+                              id="totalPhrases">{{ analysis_result_content.total_phrases }}</span>
                         словосочетаний
                         <span class="badge bg-success rounded-pill ms-2"
-                              id="uniquePhraseTypes">{{ result_analysis.unique_phrase_types }}</span> уникальных типов
+                              id="uniquePhraseTypes">{{ analysis_result_content.unique_phrase_types }}</span> уникальных типов
                     </div>
-                    <button class="btn btn-sm btn-outline-primary" type="button" id="createDictionaryBtn">
+                    <button class="btn btn-sm btn-outline-primary"
+                            type="button"
+                            onclick="window.location='{{ url_for('create_dictionary').include_query_params(analysis_result_id=analysis_result.id) }}';"
+                    >
                         Сформировать словарь
                     </button>
                 </div>
@@ -93,11 +97,11 @@
                         </tr>
                         </thead>
                         <tbody id="resultsBody">
-                        {% for phrase in result_analysis.phrases %}
+                        {% for phrase in analysis_result_content.phrases %}
                             <tr>
                                 <td data-label="Тип"><span class="phrase-type {{ phrase.color }}">{{ phrase.type }}</span></td>
                                 <td data-label="Описание">{{ phrase.pattern_description }}</td>
-                                <td data-label="Словосочетание">{{ phrase.phrase }}</td>
+                                <td data-label="Словосочетание">{{ phrase.text }}</td>
                                 <td data-label="TF-IDF">{{ "%.3f"|format(phrase.tfidf_score) }}</td>
                             </tr>
                         {% endfor %}

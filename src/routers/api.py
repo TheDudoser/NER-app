@@ -2,37 +2,14 @@ from dataclasses import asdict
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
-from starlette.requests import Request
 import starlette.status as status
 
 from src.services.exceptions import InvalidConnDictDTO
 from src.services.dictionary_service import DictionaryService
 from src.models.dto import DictionaryDTO
-from src.services.text_service import TextService
-from config import ANALYSIS_DIR, logger
+from config import logger
 
 api_router = APIRouter(prefix="/api", tags=["api"], default_response_class=JSONResponse)
-
-
-@api_router.post("/analysis", name="save_analysis")
-async def save_analysis(request: Request) -> JSONResponse:
-    """Сохранение результатов анализа для последующего создания из них словаря"""
-    try:
-        data = await request.json()
-        # Ищем хэш текста чтобы каждый раз не сохранять новый файл
-        file_hash = TextService.get_json_hash(data)
-        await TextService.save_json_file_by_request(
-            request,
-            f"{ANALYSIS_DIR}/analysis_{file_hash}.json"
-        )
-
-        return JSONResponse(content={"success": True, "file_id": file_hash})
-    except Exception as e:
-        logger.error(msg=f"Error saving analysis: {str(e)}", exc_info=True)
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"success": False, "message": str(e)}
-        )
 
 
 @api_router.post("/dictionary")
@@ -131,7 +108,7 @@ async def delete_dictionary(
 async def get_all_dicts(dict_service: DictionaryService = Depends(DictionaryService)) -> JSONResponse:
     """Получение списка словарей с краткой сводкой для каждого"""
     try:
-        dictionaries_dto = dict_service.get_short_dictionaries_from_db(True)
+        dictionaries_dto = dict_service.get_all_short_dictionaries_from_db(True)
 
         return JSONResponse(
             content={

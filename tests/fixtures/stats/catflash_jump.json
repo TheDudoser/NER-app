@@ -1,0 +1,27 @@
+{
+  "phrases": [
+    {
+      "text": "быстрый кот",
+      "type": "адъективное",
+      "pattern_description": "Прил + Сущ",
+      "tfidf_score": 0.8,
+      "length": 2
+    },
+    {
+      "text": "кот",
+      "type": "однословное",
+      "pattern_description": "Сущ",
+      "tfidf_score": 0.7,
+      "length": 1
+    },
+    {
+      "text": "рыжий кот",
+      "type": "адъективное",
+      "pattern_description": "Прил + Сущ",
+      "tfidf_score": 0.5,
+      "length": 2
+    }
+  ],
+  "total_phrases": 3,
+  "unique_phrase_types": 2
+}

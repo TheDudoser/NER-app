@@ -5,12 +5,13 @@ services:
 #    image: python:3.13-slim
 #    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     ports:
-      - "80:8000"
+      - "8000:8000"
     volumes:
       - .:/app
     environment:
       PYTHONDONTWRITEBYTECODE: 1
       PYTHONUNBUFFERED: 1
+      PYTHONPATH: "/app"
       DATABASE_URL: "postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
     depends_on:
       - postgres

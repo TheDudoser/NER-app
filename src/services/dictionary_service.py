@@ -3,20 +3,26 @@ from typing import List, Type
 from sqlalchemy import delete
 from sqlmodel import select, Session
 
-from src.models.phrase_type import PhraseType
 from src.services.exceptions import InvalidConnDictDTO
-from src.analysis.phrase_extractor import PhraseExtractor
+from src.analysis.analyser import Analyser
 from database import get_session
-from src.database.models import Dictionary, Document, Term, Connection
+from src.database.models import Dictionary, Term, Connection, AnalysisResult, DictionaryAnalysisResult
 from src.models.dto import DictionaryShortDTO, DictionaryDTO, TermDTO, ConnectionDTO
 
 
 class DictionaryService:
     def __init__(self):
-        self.phrase_extractor = PhraseExtractor()
+        self.analyser = Analyser()
         self.gen_session = get_session()
 
-    def get_short_dictionaries_from_db(
+    @staticmethod
+    def get_all_order_by_updated(db: Session, limit: int = None):
+        statement = select(Dictionary).order_by(Dictionary.updated_at)
+        if limit is not None:
+            statement.limit(limit)
+        return db.exec(statement).all()
+
+    def get_all_short_dictionaries_from_db(
             self,
             with_timestamp: bool = False
     ) -> List[DictionaryShortDTO]:
@@ -53,7 +59,7 @@ class DictionaryService:
                     text=term.text,
                     type=term.type,
                     phrase_type=term.phrase_type.value,
-                    head_noun=self.phrase_extractor.get_head_noun_lemma(term.text),
+                    head_noun=self.analyser.get_head_noun_lemma(term.text),
                     tfidf=term.tfidf,
                 )
                 for term in dictionary.terms
@@ -66,7 +72,7 @@ class DictionaryService:
                     text=term.text,
                     type=term.type,
                     phrase_type=term.phrase_type.value,
-                    head_noun=self.phrase_extractor.get_head_noun_lemma(term.text),
+                    head_noun=self.analyser.get_head_noun_lemma(term.text),
                     tfidf=term.tfidf,
                 )
                 for term in dictionary.terms
@@ -98,9 +104,10 @@ class DictionaryService:
                 db.add(dict_obj)
                 db.flush()
 
-                db.add(Document(
-                    content=dict_dto.document_text,
-                    dictionary_id=dict_obj.id
+                analysis_result = db.get(AnalysisResult, dict_dto.analysis_result_id)
+                db.add(DictionaryAnalysisResult(
+                    dictionary_id=dict_obj.id,
+                    analysis_result_id=analysis_result.id
                 ))
 
                 # 3) Обрабатываем термины и связи
@@ -142,7 +149,8 @@ class DictionaryService:
                     return False
 
                 # 2) Удаляем связанные документы
-                db.exec(delete(Document).where(Document.dictionary_id == dictionary_id))  # type: ignore
+                db.exec(delete(DictionaryAnalysisResult).where(
+                    DictionaryAnalysisResult.dictionary_id == dictionary_id))  # type: ignore
 
                 # 2) Удаляем все связи словаря
                 db.exec(delete(Connection).where(Connection.dictionary_id == dictionary_id))  # type: ignore
@@ -170,17 +178,22 @@ class DictionaryService:
                 db.add(target_dict)
                 db.flush()
 
-                # Добавляем текстовый документ к словарю в который сливаем
+                # Добавляем результат анализа к словарю в который сливаем
                 if source_dict_data.id:
-                    existing_docs = db.exec(
-                        select(Document).where(Document.dictionary_id == source_dict_data.id)
+                    existing_analysis_results = db.exec(
+                        select(DictionaryAnalysisResult).where(
+                            DictionaryAnalysisResult.dictionary_id == source_dict_data.id
+                        )
                     ).all()
-                    for existing_doc in existing_docs:
-                        existing_doc.dictionary_id = target_dict.id
-                        db.add(existing_doc)
+                    for existing_analysis_result in existing_analysis_results:
+                        existing_analysis_result.dictionary_id = target_dict.id
+                        db.add(existing_analysis_result)
                 else:
-                    document_obj = Document(content=source_dict_data.document_text, dictionary_id=target_dict_id)
-                    db.add(document_obj)
+                    analysis_result_obj = DictionaryAnalysisResult(
+                        analysis_result_id=source_dict_data.analysis_result_id,
+                        dictionary_id=target_dict_id
+                    )
+                    db.add(analysis_result_obj)
                 db.flush()
 
                 # Умное слияние терминов - учитываем существование в базе
