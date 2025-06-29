@@ -48,18 +48,17 @@ class SearchService:
                         else:
                             connection_term_texts = [conn_term.to_term for conn_term in term.from_connections]
 
-                        top_k = 3
+                        top_k = 5
                         sentence_ids = analyser.search_batches_by_queries_with_tfidf(
                             queries=[term.text],
                             batch_vectors=batch_vectors,
                             top_k=top_k
                         )
-                        # if len(sentence_ids) < top_k:
-                        #     sentence_ids = sentence_ids + analyser.search_batches_by_queries_with_tfidf(
-                        #         queries=[conn.text for conn in connection_term_texts],
-                        #         batch_vectors=batch_vectors,
-                        #         top_k=top_k
-                        #     )
+                        sentence_ids = sentence_ids + analyser.search_batches_by_queries_with_tfidf(
+                            queries=[conn.text for conn in connection_term_texts],
+                            batch_vectors=batch_vectors,
+                            top_k=top_k
+                        )
 
                         sentences = []
                         for idx in set(sentence_ids):

@@ -201,7 +201,7 @@ class Analyser:
     ) -> List[int]:
         """Возвращает список id batch, в которых встречались queries"""
         # Векторизуем каждую фразу отдельно
-        queries_vector = self.simple_vectorizer.transform(queries)
+        queries_vector = self.vectorizer.transform(queries)
 
         # Считаем схожесть каждой фразы с каждым предложением
         similarities = cosine_similarity(queries_vector, batch_vectors)
@@ -218,7 +218,7 @@ class Analyser:
 
     def simple_vectorize(self, docs: List[str]):
         if len(docs) != 0:
-            return self.simple_vectorizer.fit_transform(docs)
+            return self.vectorizer.fit_transform(docs)
         else:
             raise Exception("Empty docs")
 
