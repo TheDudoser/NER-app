@@ -23,7 +23,7 @@
                         <h5 class="card-title">Введите текст</h5>
                         <small class="text-muted">Для лучшего выделения именованных сущностей рекомендуется
                             подгружать тексты одной тематики.
-                            <br>Если ваш текст разбит на главы - грузите каждую главу по отдельности.</small>
+                            <br>Если ваш текст разбит на главы - загружайте каждую главу по отдельности.</small>
                         {% set text_analysis = analysis_result.document.content if analysis_result else '' %}
                         <textarea id="textInput" name="text" class="form-control mb-3" rows="8"
                                   placeholder="Введите текст для анализа...">{{ text_analysis }}</textarea>
@@ -48,9 +48,9 @@
         <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Об анализе</h5>
+                    <h5 class="card-title">Об извлечении именованных сущностей</h5>
                     <p class="card-text">
-                        На этом этапе система анализирует текст и выделяет ключевые словосочетания различных типов:
+                        На этом этапе система анализирует текст и выделяет именованные сущности, относящиеся к следующим типам словосочетаний:
                     </p>
                     <ul class="list-unstyled">
                         {% for pattern, color in pattern_with_colors.items() %}
@@ -67,7 +67,7 @@
         <div class="card mt-4" id="resultsCard">
             <div class="card-header">
                 <h5 class="mb-0">Результаты анализа</h5>
-                <small class="text-muted">Выделенные словосочетания отсортированы по TF-IDF</small>
+                <small class="text-muted">Выделенные словосочетания отсортированы по значению TF-IDF</small>
             </div>
             <div class="card-body">
                 <div class="d-flex justify-content-between mb-3 flex-wrap">
