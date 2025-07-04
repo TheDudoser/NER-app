@@ -92,27 +92,37 @@ class Analyser:
                 return phrase_type
         return None
 
+    @staticmethod
+    def is_abbreviation(token: str) -> bool:
+        return bool(re.fullmatch(r"[A-ZА-ЯЁ]{2,}(?:\.[A-ZА-ЯЁ]{2,})*", token))
+
     def lemma_analyzer(self, text: str, max_n: int = 3) -> List[Tuple[str, str]]:
-        """Генерирует лемматизированные n-граммы из текста с проверкой типа словосочетания."""
-        tokens = re.findall(
-            r"[A-Za-zА-Яа-яёЁ0-9]{2,}(?:-[A-Za-zА-Яа-яёЁ0-9]{2,})*|[^\w\s]",
-            text,
+        """
+        Генерирует лемматизированные n-граммы из текста с поддержкой аббревиатур.
+        """
+        token_pattern = re.compile(
+            r"[A-ZА-ЯЁ]{2,}(?:\.[A-ZА-ЯЁ]{2,})*"
+            r"|[A-Za-zА-Яа-яёЁ0-9]{2,}(?:-[A-Za-zА-Яа-яёЁ0-9]{2,})*"
+            r"|[^\w\s]",
             flags=re.UNICODE
         )
+        tokens = token_pattern.findall(text)
 
         ngrams = []
         for n in range(1, max_n + 1):
             for i in range(len(tokens) - n + 1):
                 window = tokens[i:i + n]
-                if all(re.fullmatch(r"[A-Za-zА-Яа-яёЁ0-9-]+", tok) for tok in window):
-                    # Проверяем тип словосочетания
+                if all(re.fullmatch(r"[A-Za-zА-Яа-яёЁ0-9-]+|[A-ZА-ЯЁ]{2,}(?:\.[A-ZА-ЯЁ]{2,})*", tok) for tok in window):
                     phrase_type = self._check_phrase_type(window)
                     if phrase_type is None:
                         continue
 
                     lemmas = []
                     for tok in window:
-                        lemmas.append(self.morph.parse(tok)[0].normal_form)
+                        if self.is_abbreviation(tok):
+                            lemmas.append(tok)  # Аббревиатуры не лемматизируем
+                        else:
+                            lemmas.append(self.morph.parse(tok)[0].normal_form)
                     ngrams.append((phrase_type, ' '.join(lemmas)))
         return ngrams
 
