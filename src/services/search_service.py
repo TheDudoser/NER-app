@@ -13,11 +13,11 @@ from src.models.phrase_type import PhraseType
 
 class SearchService:
     @staticmethod
-    def search_by_query(db: Session, query: str) -> list[dict[str, list[Any] | Any]]:
+    def search_by_query(db: Session, query: str, dict_limit: int = 3, sentences_limit: int = 5) -> list[dict[str, list[Any] | Any]]:
         analyser = Analyser()
         result = []
         if (query is not None) and (query != ""):
-            for dictionary in DictionaryService.get_all_order_by_updated(db, 3):
+            for dictionary in DictionaryService.get_all_order_by_updated(db, dict_limit):
                 dict_entry = {
                     "dictionary": dictionary,
                     "terms": []
@@ -48,16 +48,15 @@ class SearchService:
                         else:
                             connection_term_texts = [conn_term.to_term for conn_term in term.from_connections]
 
-                        top_k = 5
                         sentence_ids = analyser.search_batches_by_queries_with_tfidf(
                             queries=[term.text],
                             batch_vectors=batch_vectors,
-                            top_k=top_k
+                            top_k=sentences_limit
                         )
                         sentence_ids = sentence_ids + analyser.search_batches_by_queries_with_tfidf(
                             queries=[conn.text for conn in connection_term_texts],
                             batch_vectors=batch_vectors,
-                            top_k=top_k
+                            top_k=sentences_limit
                         )
 
                         sentences = []
