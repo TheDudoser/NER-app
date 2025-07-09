@@ -1,9 +1,9 @@
-{% macro get(name_list, phrases, style_id, show_subname = false) -%}
+{% macro get(name_list, phrases, style_id, size_block = 400, show_subname = false) -%}
     <h6 class="mb-0">{{ name_list }}</h6>
     {% if show_subname %}
         <small class="text-muted">Отсортированы по главному сущ.</small>
     {% endif %}
-    <div id={{ style_id }} class="drop-column">
+    <div id={{ style_id }} class="drop-column" style="min-height: {{ size_block }}px">
         {% for phrase in phrases %}
             <div class="phrase-card draggable" draggable="true" data-id="{{ phrase.id }}"
                  data-tfidf="{{ phrase.tfidf }}" data-type="{{ phrase.type }}">

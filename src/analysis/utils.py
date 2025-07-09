@@ -44,7 +44,6 @@ def html_highlight_phrases_in_sentence(
         phrase_colors: Dict[str, str],
         default_color: str = "green"
 ) -> str:
-    print(phrase_colors)
     """
     Выделяет в предложении несколько фраз разными цветами.
 

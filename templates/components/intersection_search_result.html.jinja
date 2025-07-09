@@ -1,0 +1,33 @@
+{% macro get(intersection) -%}
+    <div class="mb-4">
+        <p class="mb-2">
+            {% set term1 = intersection.terms[0][0] %}
+            {% set term2 = intersection.terms[1][0] %}
+            Пересечение <strong style="color: {{ TYPE_COLOR[term1.phrase_type] }}">"{{ term1.text }}"</strong> и <strong style="color: {{ TYPE_COLOR[term2.phrase_type] }}">"{{ term2.text }}"</strong>
+        </p>
+
+        {% for terms in intersection.terms %}
+            {% for term in terms %}
+                {% if not loop.first %}
+                    <strong style="color: {{ TYPE_COLOR[term.phrase_type] }}">
+                        {{ term.text }}
+                    </strong>
+                    <span class="badge bg-info">{{ term.phrase_type.get_desc() }}</span>
+                {% endif %}
+            {% endfor %}
+            {% if terms|length > 1 %}
+                <br>
+            {% endif %}
+        {% endfor %}
+
+        <br>
+        <div class="mb-3">
+            <h6>Найденные предложения:</h6>
+            {% for sentence in intersection.sentences %}
+                <div class="match-item d-flex justify-content-between mb-2">
+                    <div>{{ sentence|safe }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{%- endmacro %}

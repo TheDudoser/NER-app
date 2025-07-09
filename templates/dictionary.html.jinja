@@ -43,7 +43,7 @@
                 <i class="bi bi-info-circle me-2"></i>
                 <span>
                     Словосочетания можно перетаскивать между колонками.<br>
-                    Нажимая на термин вы переходите в режим работы с ним.
+                    Нажимая на термин вы переходите в режим добавления синонимов/значений термина.
                 </span>
             </div>
 
@@ -89,6 +89,7 @@
                         {{ phrase_list.get(
                             name_list="Термины",
                             phrases=terms,
+                            size_block=5000,
                             style_id="terms-column") }}
                     </div>
                     <div class="col-md-4">

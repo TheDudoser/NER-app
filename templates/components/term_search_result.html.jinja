@@ -1,0 +1,34 @@
+{% macro get(term_entry) -%}
+    <div class="mb-4">
+        <p class="mb-0">
+            <strong style="color: {{ TYPE_COLOR[term_entry.term.phrase_type] }}">
+                {{ term_entry.term.text }}
+            </strong>
+        </p>
+
+        {% set connections = term_entry.connections %}
+        <div class="mb-2">
+            <small>
+                {% if connections %}
+                    {% for conn in connections %}
+                        <strong style="color: {{ TYPE_COLOR[conn.phrase_type] }}">
+                            {{ conn.text }}
+                        </strong>
+                        <span class="badge bg-info">{{ conn.phrase_type.get_desc() }}</span>
+                    {% endfor %}
+                {% endif %}
+            </small>
+        </div>
+
+        <div class="mb-3">
+            <h6>Найденные предложения:</h6>
+            {% for sentence in term_entry.sentences %}
+                <div class="match-item d-flex justify-content-between mb-2">
+                    <div>{{ sentence|safe }}</div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <hr>
+    </div>
+{%- endmacro %}
