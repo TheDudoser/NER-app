@@ -1,7 +1,7 @@
 from typing import List, Type
 
 from sqlalchemy import delete
-from sqlmodel import select, Session
+from sqlmodel import select, Session, desc
 
 from src.services.exceptions import InvalidConnDictDTO
 from src.analysis.analyser import Analyser
@@ -17,7 +17,7 @@ class DictionaryService:
 
     @staticmethod
     def get_all_order_by_updated(db: Session, limit: int = None):
-        statement = select(Dictionary).order_by(Dictionary.updated_at)
+        statement = select(Dictionary).order_by(desc(Dictionary.updated_at))
         if limit is not None:
             statement.limit(limit)
         return db.exec(statement).all()

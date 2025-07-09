@@ -191,11 +191,20 @@ async def edit_dictionary(
 async def search(
         request: Request,
         query: Optional[str] = Query(None),
+        additional_query: Optional[str] = Query(None),
         db: Session = Depends(get_session),
         search_service: SearchService = Depends(SearchService),
 ) -> HTMLResponse:
     """Страница поиска по словарям"""
+
+    if additional_query is None or additional_query == "":
+        query_result = search_service.search_by_query(db, query)
+    else:
+        print('TEST')
+        query_result = search_service.search_by_multiple_queries(db, [query, additional_query])
+    print(query_result)
+    # additional_query_result = search_service.search_by_query(db, additional_query)
     return templates.TemplateResponse("search.html.jinja", {
         "request": request,
-        "search_results": search_service.search_by_query(db, query)
+        "search_results": query_result
     })

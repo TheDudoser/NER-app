@@ -188,7 +188,7 @@ class Analyser:
 
         # Преобразуем фразы и запрос в TF-IDF векторы
         all_texts = [t.text for t in phrases] + [self.lemma_analyzer(text=query)[-1][1]]
-        tfidf_matrix = self.simple_vectorizer.fit_transform(all_texts)
+        tfidf_matrix = self.vectorizer.fit_transform(all_texts)
 
         # Вектор запроса - последняя строка матрицы
         query_vector = tfidf_matrix[-1]

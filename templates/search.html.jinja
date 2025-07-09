@@ -55,9 +55,9 @@
                             </div>
                             <div class="mb-3">
                                 <label for="searchQuery">Вспомогательное словосочетание</label>
-                                <input type="text" id="searchQuery" class="form-control"
+                                <input type="text" id="searchQuery" name="additional_query" class="form-control"
                                        placeholder="Введите слово или фразу для поиска"
-                                        {#                                       value="{{ request.query_params.get('query', '') }}"#}
+                                       value="{{ request.query_params.get('additional_query', '') }}"
                                 >
                                 <div id="emailHelp" class="form-text">Если хотите найти где встречаются сразу 2
                                     словосочетания и их пересечения в предложении
@@ -75,6 +75,8 @@
     </div>
 
     <!-- Блок результатов -->
+    {% import 'components/term_search_result.html.jinja' as term_search_result %}
+    {% import 'components/intersection_search_result.html.jinja' as intersection_search_result %}
     {% if search_results %}
         <div class="row justify-content-center">
             <div class="col-md-8">
@@ -89,51 +91,12 @@
 
                             {% if dict_entry.terms %}
                                 {% for term_entry in dict_entry.terms %}
-                                    {% if term_entry.term.phrase_type.value == PhraseType["term"].value %}
-                                        {% set term_phrase_type = PhraseType["synonym"].get_desc() %}
-                                    {% else %}
-                                        {% set term_phrase_type = term_entry.term.phrase_type.get_desc() %}
+                                    {% if term_entry.sentences %}
+                                        {{ term_search_result.get(term_entry=term_entry) }}
                                     {% endif %}
-                                    <div class="mb-4">
-                                        <p class="mb-0">
-                                            <strong style="color: {{ TYPE_COLOR[term_entry.term.phrase_type] }}">
-                                                {{ term_entry.term.text }}
-                                            </strong>
-                                            <small class="text-muted">(Схожесть: {{ term_entry.similarity|round(2) }})</small>
-                                        </p>
-
-                                        {% set connections = term_entry.connections %}
-                                        <div class="mb-2">
-                                            <small>
-                                                {% if connections %}
-                                                    {% for conn in connections %}
-                                                        <strong style="color: {{ TYPE_COLOR[conn.phrase_type] }}">
-                                                            {{ conn.text }}
-                                                        </strong>
-                                                        <span class="badge bg-info">{{ conn.phrase_type.get_desc() }}</span>
-                                                    {% endfor %}
-                                                {% endif %}
-                                            </small>
-                                        </div>
-
-                                        {% if term_entry.sentences %}
-                                            <div class="mb-3">
-                                                <h6>Найденные предложения:</h6>
-                                                {% for sentence in term_entry.sentences %}
-                                                    <div class="match-item d-flex justify-content-between mb-2">
-                                                        <div>{{ sentence|safe }}</div>
-                                                    </div>
-                                                {% endfor %}
-                                            </div>
-
-                                            <hr>
-                                        {% else %}
-                                            <div class="alert alert-info">Нет найденных предложений для этого
-                                                термина
-                                            </div>
-                                        {% endif %}
-                                    </div>
                                 {% endfor %}
+                            {% elif dict_entry.intersection and dict_entry.intersection %}
+                                {{ intersection_search_result.get(intersection=dict_entry.intersection) }}
                             {% else %}
                                 <div class="alert alert-info">Ничего не найдено</div>
                             {% endif %}
@@ -145,7 +108,6 @@
     {% else %}
         <div class="alert alert-info">Ничего не найдено</div>
     {% endif %}
-    </div>
 {% endblock %}
 
 {% block javascript %}

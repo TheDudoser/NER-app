@@ -26,10 +26,10 @@
                             <br>Если ваш текст разбит на главы - загружайте каждую главу по отдельности.</small>
                         {% set text_analysis = analysis_result.document.content if analysis_result else '' %}
                         <textarea id="textInput" name="text" class="form-control mb-3" rows="8"
-                                  placeholder="Введите текст для анализа...">{{ text_analysis }}</textarea>
+                                  placeholder="Введите текст для NER...">{{ text_analysis }}</textarea>
                         <div class="d-flex gap-2 mb-3">
                             <button id="analyzeBtn" type="submit" class="btn btn-primary">
-                                Анализировать текст
+                                Извлечь сущности
                             </button>
                             <button class="btn btn-outline-secondary" type="button" onclick="clearText()">
                                 Очистить
@@ -66,7 +66,7 @@
         {% set analysis_result_content = analysis_result.content %}
         <div class="card mt-4" id="resultsCard">
             <div class="card-header">
-                <h5 class="mb-0">Результаты анализа</h5>
+                <h5 class="mb-0">Результаты извлечения</h5>
                 <small class="text-muted">Выделенные словосочетания отсортированы по значению TF-IDF</small>
             </div>
             <div class="card-body">
